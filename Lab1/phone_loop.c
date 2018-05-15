@@ -7,6 +7,8 @@ int main() {
 
 	scanf("%10s", phone);
 
+	int errors = 0;
+
 	while (scanf("%d", &integer) != EOF) {
 		if (integer == 0) {
 			for (int i = 0; i < 11; i++) {
@@ -21,9 +23,14 @@ int main() {
 		}
 		else {
 		printf("ERROR\n");
-		return 1;
+		errors = 1;
 		}
 	}
 	
-	return 0;
+	if (errors == 1) {
+		return 1;
+	}
+	else {
+		return 0;
+	}
 }
