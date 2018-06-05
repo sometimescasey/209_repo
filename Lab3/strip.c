@@ -20,6 +20,19 @@
 
 // Write the function strip_q_marks here
 
+int strip_q_marks(char *string) {
+    // recursion: keep running strip q marks until last thing is no longer a q mark
+    int strLen = strlen(string);
+    int counter = 0;
+    char *s = &string[0] + (strLen-1)*sizeof(char);
+    while (*s == '?') {
+        *s = '\0';
+        strLen = strlen(string);
+        s -= sizeof(char);
+        counter++;
+    }
+    return counter;
+}
 
 int main(int argc, char **argv) {
     // Do not change this main function.
