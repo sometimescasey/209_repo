@@ -36,9 +36,21 @@ int main(int argc, char **argv) {
     char greeting[20];
     char *name = argv[2];
 
-    // Your code goes here
-
-
+    int firstLen = strlen(argv[1]);
+    
+    if (firstLen >= 19) {
+        // no room for name; just end it
+        strncpy(greeting, argv[1], 19);
+        greeting[19] = '\0';
+    }
+    else {
+        strncpy(greeting, argv[1], firstLen);
+        int room = 19 - firstLen - 1; // -1 for added space
+        greeting[firstLen] = ' '; // add space
+        strncpy(greeting + (firstLen+1)*sizeof(char), name, room);
+        greeting[19] = '\0';
+    }
+    
     printf("%s\n", greeting);
     return 0;
 }
