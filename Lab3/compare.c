@@ -37,7 +37,6 @@ int main(int argc, char **argv) {
 	else {
 		printf("Invalid\n");
 	}
-	
 
 	return 0;
 }
