@@ -8,8 +8,32 @@
  * height in the given bitmap file.
  */
 void read_bitmap_metadata(FILE *image, int *pixel_array_offset, int *width, int *height) {
+	int error;
+	
+	if (fseek(image, 10, SEEK_SET) == 0) {
+		// all this does is seek to this location; doesn't actually read
+		error = fread(pixel_array_offset, sizeof(int), 1, image);
+		if (error != 1) {
+			fprintf(stderr, "Error: could not correctly read BMP pixel array offset\n");
+		}
+	} 
+	
+	if (fseek(image, 18, SEEK_SET) == 0) {
+		error = fread(width, sizeof(int), 1, image);
+		if (error != 1) {
+			fprintf(stderr, "Error: could not correctly read BMP width\n");
+		}
+	}
+	
 
+	if (fseek(image, 22, SEEK_SET) == 0) {
+		error = fread(height, sizeof(int), 1, image);
+		if (error != 1) {
+			fprintf(stderr, "Error: could not correctly read BMP height\n");
+		}
+	}
 }
+	
 
 /*
  * Read in pixel array by following these instructions:
@@ -28,6 +52,56 @@ void read_bitmap_metadata(FILE *image, int *pixel_array_offset, int *width, int 
  * 4. Return the address of the first `struct pixel *` you initialized.
  */
 struct pixel **read_pixel_array(FILE *image, int pixel_array_offset, int width, int height) {
+
+	int m = height;
+	int n = width;
+	
+	// allocate space for array
+	struct pixel **array = malloc(m * sizeof(struct pixel*));
+	for (int i = 0; i < m; i++) {
+		array[i] = malloc(n * sizeof(struct pixel));
+	}
+
+	// set array values
+	// note that some bmps appear to be stored from bottom to top
+	int try_read;
+	int readError;
+	if (fseek(image, pixel_array_offset, SEEK_SET) == 0) {
+		fseek(image, 54, SEEK_SET);
+		for (int i = 0; i < m; i++) {
+			for (int j = 0; j < n; j++) {
+				readError = fread(&try_read, sizeof(char), 1, image);
+				// printf("B: %d\n", try_read);
+				if (readError != 0) {
+					array[i][j].blue = try_read;
+				} else {
+					fprintf(stderr, "Error encountered reading pixel at i,j = %d, %d\n", i, j);
+				}
+				readError = fread(&try_read, sizeof(char), 1, image);
+				// printf("G: %d\n", try_read);
+				if (readError != 0) {
+					array[i][j].green = try_read;
+				} else {
+					fprintf(stderr, "Error encountered reading pixel at i,j = %d, %d\n", i, j);
+				}
+				readError = fread(&try_read, sizeof(char), 1, image);
+				// printf("R: %d\n", try_read);
+				if (readError != 0) {
+					array[i][j].red = try_read;
+				} else {
+					fprintf(stderr, "Error encountered reading pixel at i,j = %d, %d\n", i, j);
+				}
+				// printf("------- PIXEL DONE ------\n");
+			}
+			// printf("-------------new row-----------\n");
+	}
+
+	} else {
+		fprintf(stderr, "Error: could not fseek to pixel_array_offset\n");
+	}
+
+
+	return array;
 
 }
 
