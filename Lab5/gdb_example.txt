@@ -1,0 +1,332 @@
+Script started on Mon 18 Jun 2018 04:28:22 PM EDT
+]0;casey@casey-laptop: ~/Desktop/CSC209/repo/lijuanxi/Lab5[01;32mcasey@casey-laptop[00m:[01;34m~/Desktop/CSC209/repo/lijuanxi/Lab5[00m$ gdb overflow
+GNU gdb (Ubuntu 7.11.1-0ubuntu1~16.5) 7.11.1
+Copyright (C) 2016 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<http://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+<http://www.gnu.org/software/gdb/documentation/>.
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from overflow...done.
+(gdb) break overflow.c [K:36
+Breakpoint 1 at 0x40082f: file overflow.c, line 36.
+(gdb) run
+Starting program: /home/casey/Desktop/CSC209/repo/lijuanxi/Lab5/overflow 
+Address of the variables:
+7fffffffdca0 -> &after[0]
+7fffffffdca4 -> &after[1]
+7fffffffdca8 -> &after[2]
+7fffffffdcac -> &after[3]
+7fffffffdc90 -> &a[0]
+7fffffffdc94 -> &a[1]
+7fffffffdc98 -> &a[2]
+7fffffffdc9c -> &a[3]
+7fffffffdc80 -> &before[0]
+7fffffffdc84 -> &before[1]
+7fffffffdc88 -> &before[2]
+7fffffffdc8c -> &before[3]
+7fffffffdc7c -> &i
+7fffffffdc78 -> &index
+
+Initial values:
+i = 0
+before = {10, 10, 10, 10}
+a = {0, 0, 0, 0}
+after = {10, 10, 10, 10}
+
+
+Breakpoint 1, main () at overflow.c:36
+36	    for (i = 0; i < OVERFLOW; i++) {
+(gdb) display o[Ki
+1: i = 0
+(gdb) display a[3]
+2: a[3] = 0
+(gdb) display a[4]
+3: a[4] = 10
+(gdb) display after[0]
+4: after[0] = 10
+(gdb) display &a[4]\[K[K[K3]
+5: &a[3] = (int *) 0x7fffffffdc9c
+(gdb) display &a[4]
+6: &a[4] = (int *) 0x7fffffffdca0
+(gdb) display &after[0]
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) next
+37	        a[i] = i * 10;
+1: i = 0
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+38	        printf("i = %d\n", i);
+1: i = 0
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+i = 0
+39	        printf("before = {%d, %d, %d, %d}\n", before[0], before[1], before[2], before[3]);
+1: i = 0
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+before = {10, 10, 10, 10}
+40	        printf("a = {%d, %d, %d, %d}\n", a[0], a[1], a[2], a[3]);
+1: i = 0
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+a = {0, 0, 0, 0}
+41	        printf("after = {%d, %d, %d, %d}\n", after[0], after[1], after[2], after[3]);
+1: i = 0
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+after = {10, 10, 10, 10}
+36	    for (i = 0; i < OVERFLOW; i++) {
+1: i = 0
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+37	        a[i] = i * 10;
+1: i = 1
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+38	        printf("i = %d\n", i);
+1: i = 1
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+i = 1
+39	        printf("before = {%d, %d, %d, %d}\n", before[0], before[1], before[2], before[3]);
+1: i = 1
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+before = {10, 10, 10, 10}
+40	        printf("a = {%d, %d, %d, %d}\n", a[0], a[1], a[2], a[3]);
+1: i = 1
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+a = {0, 10, 0, 0}
+41	        printf("after = {%d, %d, %d, %d}\n", after[0], after[1], after[2], after[3]);
+1: i = 1
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+after = {10, 10, 10, 10}
+36	    for (i = 0; i < OVERFLOW; i++) {
+1: i = 1
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+37	        a[i] = i * 10;
+1: i = 2
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+38	        printf("i = %d\n", i);
+1: i = 2
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+i = 2
+39	        printf("before = {%d, %d, %d, %d}\n", before[0], before[1], before[2], before[3]);
+1: i = 2
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+before = {10, 10, 10, 10}
+40	        printf("a = {%d, %d, %d, %d}\n", a[0], a[1], a[2], a[3]);
+1: i = 2
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+a = {0, 10, 20, 0}
+41	        printf("after = {%d, %d, %d, %d}\n", after[0], after[1], after[2], after[3]);
+1: i = 2
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+after = {10, 10, 10, 10}
+36	    for (i = 0; i < OVERFLOW; i++) {
+1: i = 2
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+37	        a[i] = i * 10;
+1: i = 3
+2: a[3] = 0
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+38	        printf("i = %d\n", i);
+1: i = 3
+2: a[3] = 30
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+i = 3
+39	        printf("before = {%d, %d, %d, %d}\n", before[0], before[1], before[2], before[3]);
+1: i = 3
+2: a[3] = 30
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+before = {10, 10, 10, 10}
+40	        printf("a = {%d, %d, %d, %d}\n", a[0], a[1], a[2], a[3]);
+1: i = 3
+2: a[3] = 30
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+a = {0, 10, 20, 30}
+41	        printf("after = {%d, %d, %d, %d}\n", after[0], after[1], after[2], after[3]);
+1: i = 3
+2: a[3] = 30
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+after = {10, 10, 10, 10}
+36	    for (i = 0; i < OVERFLOW; i++) {
+1: i = 3
+2: a[3] = 30
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+37	        a[i] = i * 10;
+1: i = 4
+2: a[3] = 30
+3: a[4] = 10
+4: after[0] = 10
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+38	        printf("i = %d\n", i);
+1: i = 4
+2: a[3] = 30
+3: a[4] = 40
+4: after[0] = 40
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) 
+i = 4
+39	        printf("before = {%d, %d, %d, %d}\n", before[0], before[1], before[2], before[3]);
+1: i = 4
+2: a[3] = 30
+3: a[4] = 40
+4: after[0] = 40
+5: &a[3] = (int *) 0x7fffffffdc9c
+6: &a[4] = (int *) 0x7fffffffdca0
+7: &after[0] = (int *) 0x7fffffffdca0
+(gdb) print &(after[0])
+$1 = (int *) 0x7fffffffdca0
+(gdb) quit
+A debugging session is active.
+
+	Inferior 1 [process 26528] will be killed.
+
+Quit anyway? (y or n) y
+]0;casey@casey-laptop: ~/Desktop/CSC209/repo/lijuanxi/Lab5[01;32mcasey@casey-laptop[00m:[01;34m~/Desktop/CSC209/repo/lijuanxi/Lab5[00m$ exit
+exit
+
+Script done on Mon 18 Jun 2018 04:30:14 PM EDT
