@@ -12,9 +12,31 @@
  */
 
 char *copy(char *dest, const char *src, int capacity) {
+  int i;
 
+  for (i = 0; i < capacity && src[i] != '\0'; i++) {
+    dest[i] = src[i];
+  }
+  
+  for (; i < capacity; i++) {
+    dest[i] = '\0';
+  }
 
-    return dest;
+  // check if dest[capacity-1] is null terminated
+  if (dest[capacity-1] != '\0') {
+    // we need to make a new array of length capacity+1, 
+    // copy dest, add a null terminator, and return that
+    char *newdest = malloc((capacity+1) * sizeof(char));
+
+    for (int j = 0; j < capacity; j++) {
+      newdest[j] = dest[j];
+    }
+    newdest[capacity] = '\0';
+    dest = newdest;
+    free(newdest);
+  }   
+
+  return dest;
 }
 
 
@@ -24,6 +46,10 @@ int main(int argc, char **argv) {
         exit(1);
     }
     int size = strtol(argv[1], NULL, 10);
+    if (size < 1) { // error checking for bad values of size
+      fprintf(stderr, "size cannot be 0 or negative\n");
+        exit(1);
+    }
     char *src = argv[2];
 
     char dest[size];
