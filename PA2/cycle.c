@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
 	}
 	
 	char *rootdir;
-	if (argc == 1) {
+	if (argc == 1 || strcmp(argv[1], ".") == 0) {
 		// use cwd
 		// printf("No argument provided: using cwd\n");
 		char cwd[max_path_size];
