@@ -4,14 +4,16 @@
 #include  <sys/types.h>
 #include  <unistd.h>
 
+#define EXT ".rle"
+
 char* getNewFilename(char *filename) {
+	int ext_len = strlen(EXT);
 	int fin_len = strlen(filename);
-	char *fout_name = malloc((fin_len + 5) * sizeof(char)); 
+	char *fout_name = malloc((fin_len + ext_len + 1) * sizeof(char)); 
 	//add ".rle" plus null terminator
-	// TODO: move these to DEFINES
 	strncpy(fout_name, filename, fin_len);
-	strncpy(fout_name + fin_len,".rle", 4);
-	fout_name[(fin_len+4) * sizeof(char)] = '\0';
+	strncpy(fout_name + fin_len, EXT, ext_len);
+	fout_name[(fin_len + ext_len) * sizeof(char)] = '\0';
 
 	return fout_name;
 }
