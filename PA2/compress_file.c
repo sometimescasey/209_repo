@@ -26,7 +26,6 @@ int main(int argc, char **argv) {
 
 	// parse file
 	char *filename = argv[1];
-	printf("filename: %s\n", filename);
 
 	FILE *file_in;
 	FILE *file_out;
@@ -40,7 +39,8 @@ int main(int argc, char **argv) {
 	else {
 		// we're in business
 		char *fout_name = getNewFilename(filename);
-		file_out = fopen(fout_name, "wb"); // TODO: use proper filename
+		file_out = fopen(fout_name, "wb");
+		free(fout_name);
 
 		// start reading file byte by byte
 		char *buffer = malloc(sizeof(char));
@@ -48,14 +48,19 @@ int main(int argc, char **argv) {
 		char next;
 		int seq_count;
 
-		// TODO: empty file case
-		fread(buffer, sizeof(char), 1, file_in);
+		int notEmpty;
+
+		// handle empty file case
+		notEmpty = fread(buffer, sizeof(char), 1, file_in);
+		if (!notEmpty) {
+			fprintf(stderr, "ERROR: file is empty. Exiting.\n");
+			exit(1);
+		}
+		
 		current = *buffer;
 		seq_count = 1;
 
 		while(fread(buffer, sizeof(char), 1, file_in)) {
-			printf("seq_count: %d | buffer: %d\n", seq_count, current);
-			printf("buffer: %d\n", *buffer);
 			next = *buffer;
 			if (next == current) {
 				seq_count++;
@@ -64,21 +69,21 @@ int main(int argc, char **argv) {
 			}
 			else {
 				// write the value
-				printf("Writing seq_count: %d\n", seq_count);
 				fwrite(&seq_count, 1, 1, file_out);
-				printf("Writing current byte: %d\n", current);
 				fwrite(&current, 1, 1, file_out);
 				current = next;
 				seq_count = 1; // reset seq_count
 			}
 		}
-		// TODO: take care of last item
+		// take care of last item
+		fwrite(&seq_count, 1, 1, file_out);
+		fwrite(&current, 1, 1, file_out);
+		
+		free(buffer);
 	}
 
 	fclose(file_in);
 	fclose(file_out);
-
-	//TODO: fix memory leaks from malloc
 
 	return 0;
 }

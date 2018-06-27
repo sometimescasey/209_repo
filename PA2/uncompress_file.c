@@ -26,37 +26,65 @@ int isRLE(char *str) {
 	else return 0;
 }
 
+void writeN(FILE *fout, char *byte, int n) {
+	// writes byte to fout, n times
+	for (int i = 0; i < n; i++) {
+		fwrite(byte, 1, 1, fout);
+	}
+}
+
 int main(int argc, char **argv) {
 	// argument check
 	if (argc != 2) {
-		fprintf(stderr, "Usage: uncompress_file compressed-file");
+		fprintf(stderr, "Usage: uncompress_file compressed-file.rle");
 	}
 
 	// parse file
 	char *filename = argv[1];
-	printf("filename: %s\n", filename);
 
 	FILE *file_in;
 	FILE *file_out;
 
-	file_in = fopen(filename, "rb");
 	
-	if(!isRLE(filename)){
-		// check for .rle extension
-		fprintf(stderr, "ERROR: File dos not have  .rle extension\n");
-		exit(1);
+	// check for .rle extension
+	if(isRLE(filename)){
+		file_in = fopen(filename, "rb");
+	} else {
+		fprintf(stderr, "ERROR: File dos not have .rle extension\n");
+		exit(1);	
 	}
-	else if (file_in == NULL) {
+	
+	if (file_in == NULL) {
 		perror("Failed to open file");
 		exit(1);
 	}
 	else {
 		// we're in business
 		char *fout_name = getOrigFilename(filename);
-		printf("Output filename: %s\n", fout_name);
-		file_out = fopen(fout_name, "wb"); // TODO: use proper filename
+		file_out = fopen(fout_name, "wb");
 
-		// fclose(file_in);
+		// start reading file byte by byte
+		char *count_buffer = malloc(sizeof(char));
+		char *byte_buffer = malloc(sizeof(char));
+
+		int notEmpty;
+
+		// check for and handle empty file case
+		notEmpty = fread(count_buffer, sizeof(char), 1, file_in);
+		if (!notEmpty) {
+			fprintf(stderr, "ERROR: file is empty. Exiting.\n");
+			exit(1);
+		}
+		fread(byte_buffer, sizeof(char), 1, file_in);
+		writeN(file_out, byte_buffer, *count_buffer);
+		
+		// keep reading
+		while(fread(count_buffer, sizeof(char), 1, file_in)) {
+			fread(byte_buffer, sizeof(char), 1, file_in);
+			writeN(file_out, byte_buffer, *count_buffer);
+		}
+
+		fclose(file_in);
 		fclose(file_out);
 
 	return 0;
