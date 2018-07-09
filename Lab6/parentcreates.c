@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 int main(int argc, char **argv) {
     int i;
     int iterations;
 
-    const int og_parent = getppid();
+    const pid_t og_parent = getppid();
 
     if (argc != 2) {
         fprintf(stderr, "Usage: forkloop <iterations>\n");
@@ -26,6 +28,7 @@ int main(int argc, char **argv) {
         
         printf("ppid = %d, pid = %d, i = %d\n", getppid(), getpid(), i);
     }
+    wait(NULL);
 
     return 0;
 }

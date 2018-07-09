@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 int main(int argc, char **argv) {
     int i;
@@ -28,5 +30,6 @@ int main(int argc, char **argv) {
         printf("ppid = %d, pid = %d, i = %d\n", getppid(), getpid(), i);
     }
 
+    wait(NULL);
     return 0;
 }
