@@ -38,31 +38,14 @@ int main(void) {
   r = fork();
   if (r > 0) {
     // is parent
-    // reset STDOUT slot to write to pipe, and then write variables
-      // if (dup2(fd[1], fileno(stdout)) == -1) {
-      //   perror("dup2");
-      //   exit(1);
-      // }
 
-    // never reads from pipe; close fd[0]
-    // if (close(fd[0]) == -1) {
-    //  perror("close");
-    // }
-
-    // now close fd[1] after redirecting
-    // if (close(fd[1]) == -1) {
-    //  perror("close");
-    // }
-
-    // write username:pwd to stdout
-    // printf("%s:%s",user_id,password);
-
-    // or write directly to pipe
-    write(fd[1], user_id, strlen(user_id) + 1);
-    write(fd[1], "\n", 4);
-    write(fd[1], password, strlen(password) + 1);
-    // printf("user_id: %s", user_id);
-    // printf("password: %s", password);
+    // need to pad user_id to 10 bytes, MAX_PASSWORD
+    // write directly to pipe
+    write(fd[1], user_id, strlen(user_id)+1);
+    for (int i = 0; i < (MAX_PASSWORD - strlen(user_id) - 1); i++) {
+      write(fd[1], "\n", strlen("\n"));
+    }
+    write(fd[1], password, strlen(password)+1);
     close(fd[1]);
   } 
   else if (r == 0) {
