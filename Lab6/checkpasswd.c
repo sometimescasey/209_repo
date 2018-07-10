@@ -59,7 +59,10 @@ int main(void) {
 
     // or write directly to pipe
     write(fd[1], user_id, strlen(user_id) + 1);
-    write(fd[1], user_id, strlen(password) + 1);
+    write(fd[1], "\n", 4);
+    write(fd[1], password, strlen(password) + 1);
+    // printf("user_id: %s", user_id);
+    // printf("password: %s", password);
     close(fd[1]);
   } 
   else if (r == 0) {
@@ -91,8 +94,10 @@ int main(void) {
     printf("No such user\n");
   } else if (2 == result) {
     printf("Invalid password\n");
-  } else if (1 == result) {
+  } else if (0 == result) {
     printf("Password verified\n");
+  } else if (1 == result) {
+    printf("Error\n");
   }
   // printf("WEXITSTATUS(status):%d\n",WEXITSTATUS(status));
   return 0;
