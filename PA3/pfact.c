@@ -3,29 +3,29 @@
 #include <unistd.h>
 #include <math.h>
 
-// simple Linked List to store the remaining elements
-typedef struct ll_item ll_item;
+// simple Linked List for handling the element list, and tracking factors
+typedef struct Number Number;
 
-struct ll_item {
+struct Number {
 	int value;
-	ll_item *next;
-	ll_item *prev;
+	Number *next;
+	Number *prev;
 };
 
-ll_item* new_ll_item(int n) {
-	ll_item * pointer = malloc(sizeof(ll_item));
+Number* new_Number(int n) {
+	Number * pointer = malloc(sizeof(Number));
 	pointer->value = n;
 	return pointer;
 }
 
-ll_item* init_ll(int n) {
+Number* init_ll(int n) {
 	// fill in the linked list from 2 to n. O(n)
 	// return pointer to the head
-	ll_item *head = new_ll_item(2);
-	ll_item *prev = head;
+	Number *head = new_Number(2);
+	Number *prev = head;
 
 	for (int i = 3; i <= n; i++) {
-		ll_item *current = new_ll_item(i);
+		Number *current = new_Number(i);
 		current->prev = prev; // update prev pointer of current
 		prev->next = current; // update next pointer of prev
 		prev = current; // set prev to current, for the next item
@@ -34,10 +34,10 @@ ll_item* init_ll(int n) {
 	return head;
 }
 
-void walk_ll(ll_item *head) {
+void walk_ll(Number *head) {
 	// walk the entire LL starting from head
 	// stop when the item does not have a next
-	ll_item *current = head;
+	Number *current = head;
 	while (current) {
 		printf("%d\n", current->value);
 		current = current->next;
@@ -45,10 +45,10 @@ void walk_ll(ll_item *head) {
 	// printf("%d\n", current->value); // get that last value too
 }
 
-void free_ll(ll_item *head) {
+void free_ll(Number *head) {
 	//cleanup all but head
-	ll_item *current = head;
-	ll_item *next;
+	Number *current = head;
+	Number *next;
 	while (current) {
 		next = current->next;
 		free(current);
@@ -56,17 +56,17 @@ void free_ll(ll_item *head) {
 	}
 }
 
-ll_item* filter_ll(ll_item *head, int m) {
+Number* filter_ll(Number *head, int m) {
 	// walk the entire LL starting from head
 	// remove items that are multiples of m
 	// stop when the item does not have a next
 	// return pointer to new head
 
-	ll_item *new_head = head;
+	Number *new_head = head;
 
-	ll_item *current = head;
-	ll_item * prev;
-	ll_item * next;
+	Number *current = head;
+	Number * prev;
+	Number * next;
 
 	int cur_val;
 	
@@ -105,15 +105,15 @@ ll_item* filter_ll(ll_item *head, int m) {
 	return new_head;
 }
 
-int next_m(ll_item *head) {
+int next_m(Number *head) {
 	// return the next m for the filter.
 	return head->value; 
 }
 
-ll_item* push(ll_item *head, int n) {
+Number* push(Number *head, int n) {
 	// push item to the linked list at head
 	// return pointer to new head
-	ll_item *current = new_ll_item(n); 
+	Number *current = new_Number(n); 
 	// todo: this malloc will need to be cleaned up later
 	if (head == NULL) {
 		printf("pushed to a null head\n");
@@ -126,9 +126,9 @@ ll_item* push(ll_item *head, int n) {
 	}	
 }
 
-ll_item* factor_check(int m, int n, ll_item *factor_tracker) {
+Number* factor_check(int m, int n, Number *factor_tracker) {
 	if ((n % m) == 0) {
-		ll_item *new_tracker_head = push(factor_tracker, m);
+		Number *new_tracker_head = push(factor_tracker, m);
 		return new_tracker_head;
 	}
 	return factor_tracker;
@@ -148,10 +148,10 @@ int main(int argc, char **argv) {
 	// next filter is the smallest integer in the array, or the array head
 
 	// testing LL
-	ll_item *head = init_ll(n);
+	Number *head = init_ll(n);
 	walk_ll(head);
 
-	ll_item *factor_tracker = NULL; // initially, no factors
+	Number *factor_tracker = NULL; // initially, no factors
 
 	int m = 2;
 
