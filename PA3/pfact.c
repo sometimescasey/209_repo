@@ -49,7 +49,6 @@ void free_ll(ll_item *head) {
 	//cleanup all but head
 	ll_item *current = head;
 	ll_item *next;
-	ll_item *last;
 	while (current) {
 		next = current->next;
 		free(current);
@@ -57,11 +56,10 @@ void free_ll(ll_item *head) {
 	}
 }
 
-ll_item* filter_ll(ll_item *head, int m, ll_item *factor_tracker) {
+ll_item* filter_ll(ll_item *head, int m) {
 	// walk the entire LL starting from head
 	// remove items that are multiples of m
 	// stop when the item does not have a next
-	// if n is a factor of m, add it to factor_tracker
 	// return pointer to new head
 
 	ll_item *new_head = head;
@@ -69,12 +67,14 @@ ll_item* filter_ll(ll_item *head, int m, ll_item *factor_tracker) {
 	ll_item *current = head;
 	ll_item * prev;
 	ll_item * next;
+
+	int cur_val;
 	
 	while (current) {
-		int cur_val = current->value;
-		printf("%d\n", cur_val);
+		cur_val = current->value;
+		// printf("%d\n", cur_val);
 		if ((cur_val % m) == 0) {
-			printf(" %d is a multiple of %d! remove it\n", cur_val, m);
+			// printf(" %d is a multiple of %d! remove it\n", cur_val, m);
 			// is a multiple; remove it
 			if (current->prev && current->next) {
 				// we're not removing head or tail. fix all links
@@ -85,14 +85,14 @@ ll_item* filter_ll(ll_item *head, int m, ll_item *factor_tracker) {
 				free(current);
 			} else if (current->next){
 				// we're removing the head, return pointer to the next item (new head)
-				printf("remove head!\n");
+				// printf("remove head!\n");
 				next = current->next;
 				next->prev = NULL;
 				new_head = next;
 				free(current);
 			} else {
 				// we're removing the tail and we're done
-				printf("remove tail!\n");
+				// printf("remove tail!\n");
 				prev = current->prev;
 				prev->next = NULL;
 				free(current);
@@ -115,9 +115,23 @@ ll_item* push(ll_item *head, int n) {
 	// return pointer to new head
 	ll_item *current = new_ll_item(n); 
 	// todo: this malloc will need to be cleaned up later
-	head->prev = current;
-	current->next = head;
-	return current;
+	if (head == NULL) {
+		printf("pushed to a null head\n");
+		// LL is empty, just return the pointer to current
+		return current;
+	} else {
+		head->prev = current;
+		current->next = head;
+		return current;
+	}	
+}
+
+ll_item* factor_check(int m, int n, ll_item *factor_tracker) {
+	if ((n % m) == 0) {
+		ll_item *new_tracker_head = push(factor_tracker, m);
+		return new_tracker_head;
+	}
+	return factor_tracker;
 }
 
 int main(int argc, char **argv) {
@@ -137,11 +151,33 @@ int main(int argc, char **argv) {
 	ll_item *head = init_ll(n);
 	walk_ll(head);
 
-	ll_item *factor_tracker;
-	head = filter_ll(head, 2, factor_tracker);
+	ll_item *factor_tracker = NULL; // initially, no factors
+
+	int m = 2;
+
+	factor_tracker = factor_check(m, n, factor_tracker);
+	head = filter_ll(head, m);
+
+
+	m = 3;
+
+	factor_tracker = factor_check(m, n, factor_tracker);
+	head = filter_ll(head, m);
+
+
+	m = 5;
+
+	factor_tracker = factor_check(m, n, factor_tracker);
+	head = filter_ll(head, m);
+
+	// head = filter_ll(head, 3, factor_tracker);
+	printf("----------after m=2,3,5\n");
 	walk_ll(head);
+	printf("-------- recorded factors: \n");
+	walk_ll(factor_tracker);
 
 	free_ll(head);
+	free_ll(factor_tracker);
 
 
 	// set up pipe
