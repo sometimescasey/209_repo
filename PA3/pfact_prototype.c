@@ -202,12 +202,7 @@ int main(int argc, char **argv) {
 
 	// try m until m >= sqrt(n)
 	printf("sqrt(n) is: %lf\n", sqrt((double) n));
-	while ((double) m <= sqrt((double) n)) {
-		if ((double) m == sqrt((double) n)) {
-			// special case: n is perfect square
-			printf("special case: n is perfect square of two primes! %d, %d\n", m, m);
-			exit(0);
-		}
+	while ((double) m < sqrt((double) n)) {
 		old_fc = factor_count;
 		m_count += 1;
 		printf("------------- trying m = %d\n", m);
@@ -239,12 +234,11 @@ int main(int argc, char **argv) {
 		// we have exactly one factor: divide n by it and check if that is prime (is it in the list of remaining #s)
 		int factor = factor_tracker->value;
 		int q = n / factor;
-		if (isInList(q, head)) {
+		if (isInList(q, factor_tracker)) {
 			printf("%d has two prime factors: %d, %d\n", n, factor, q);
 			exit(0);
 		} else {
 			printf("Did division check: %d is not product of two primes. (%d, %d)\n", n, factor, q);
-			exit(0);
 		}
 
 

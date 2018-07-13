@@ -1,4 +1,4 @@
 all: pfact
 
 pfact : pfact.c
-	gcc -Wall -std=gnu99 -o pfact pfact.c -lm
+	gcc -Wall -g -std=c99 -o pfact pfact.c -lm
