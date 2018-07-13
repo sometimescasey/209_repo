@@ -45,18 +45,6 @@ void walk_ll(ll_item *head) {
 	// printf("%d\n", current->value); // get that last value too
 }
 
-void free_ll(ll_item *head) {
-	//cleanup all but head
-	ll_item *current = head;
-	ll_item *next;
-	ll_item *last;
-	while (current) {
-		next = current->next;
-		free(current);
-		current = next;
-	}
-}
-
 ll_item* filter_ll(ll_item *head, int m, ll_item *factor_tracker) {
 	// walk the entire LL starting from head
 	// remove items that are multiples of m
@@ -140,8 +128,6 @@ int main(int argc, char **argv) {
 	ll_item *factor_tracker;
 	head = filter_ll(head, 2, factor_tracker);
 	walk_ll(head);
-
-	free_ll(head);
 
 
 	// set up pipe
