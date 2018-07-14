@@ -1,4 +1,4 @@
- #include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
@@ -184,10 +184,6 @@ int main(int argc, char **argv) {
 
 	int n = strtol(argv[1], NULL, 10);
 
-
-	// int current_filter = next_m(head);
-	// next filter is the smallest integer in the array, or the array head
-
 	// testing LL
 	Number *head = init_list(n);
 	// walk_list(head);
@@ -202,10 +198,14 @@ int main(int argc, char **argv) {
 
 	// try m until m >= sqrt(n)
 	printf("sqrt(n) is: %lf\n", sqrt((double) n));
-	while ((double) m < sqrt((double) n)) {
+	while ((double) m <= sqrt((double) n)) {
+		if ((double) m == sqrt((double) n)) {
+			// special case: n is perfect square
+			printf("special case: n is perfect square of two primes! %d, %d\n", m, m);
+			exit(0);
+		}
 		old_fc = factor_count;
 		m_count += 1;
-		printf("------------- trying m = %d\n", m);
 
 		factor_tracker = factor_check(factor_tracker, &factor_count, m, n);
 		if (factor_count > old_fc) {
@@ -215,13 +215,13 @@ int main(int argc, char **argv) {
 				double b = factor_tracker->prev->value;
 				double sqrtn = sqrt((double) n);
 
-				if (a < sqrtn && b < sqrtn) {
-					printf("Not product of 2 primes. Found 2 prime factors both smaller than sqrt(n): %d and %d\n", (int) a, (int) b);
-					exit(0);
-				}
+				printf("Not product of 2 primes. Found 2 prime factors both smaller than sqrt(n): %d and %d\n", (int) a, (int) b);
+				exit(0);
+
 			}
 		}
 		m_tracker = push(m_tracker, m);
+		printf("------------- filtering m = %d\n", m);
 		head = filter_list(head, m);
 		m = next_m(head);
 	}
@@ -234,11 +234,12 @@ int main(int argc, char **argv) {
 		// we have exactly one factor: divide n by it and check if that is prime (is it in the list of remaining #s)
 		int factor = factor_tracker->value;
 		int q = n / factor;
-		if (isInList(q, factor_tracker)) {
+		if (isInList(q, head)) {
 			printf("%d has two prime factors: %d, %d\n", n, factor, q);
 			exit(0);
 		} else {
 			printf("Did division check: %d is not product of two primes. (%d, %d)\n", n, factor, q);
+			exit(0);
 		}
 
 
