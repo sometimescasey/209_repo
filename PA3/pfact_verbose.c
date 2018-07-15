@@ -1,216 +1,284 @@
- #include <stdio.h>
-#include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <math.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
-// simple Linked List to store the remaining elements
-typedef struct ll_item ll_item;
-
-struct ll_item {
-	int value;
-	ll_item *next;
-	ll_item *prev;
-};
-
-ll_item* new_ll_item(int n) {
-	ll_item * pointer = malloc(sizeof(ll_item));
-	pointer->value = n;
-	return pointer;
-}
-
-ll_item* init_ll(int n) {
-	// fill in the linked list from 2 to n. O(n)
-	// return pointer to the head
-	ll_item *head = new_ll_item(2);
-	ll_item *prev = head;
-
-	for (int i = 3; i <= n; i++) {
-		ll_item *current = new_ll_item(i);
-		current->prev = prev; // update prev pointer of current
-		prev->next = current; // update next pointer of prev
-		prev = current; // set prev to current, for the next item
+void writeData(int fd1, int found_count, int * factors, int m, int array_len, int * array) {
+// write found_count and factors[i] if needed
+	int write_val = write(fd1, &found_count, sizeof(int));
+	if (write_val > 0) {
+		printf("ppid: %d | pid: %d | ", getppid(), getpid());
+		printf("wrote found_count value to pipe: %d\n", found_count);
 	}
 
-	return head;
-}
-
-void walk_ll(ll_item *head) {
-	// walk the entire LL starting from head
-	// stop when the item does not have a next
-	ll_item *current = head;
-	while (current) {
-		printf("%d\n", current->value);
-		current = current->next;
+	for (int i = 0; i < found_count; i++) {
+		write(fd1, &factors[i], sizeof(int));
+		printf("wrote factors[i] value to pipe: %d\n", factors[i]);
 	}
-	// printf("%d\n", current->value); // get that last value too
-}
 
-ll_item* filter_ll(ll_item *head, int m, ll_item *factor_tracker) {
-	// walk the entire LL starting from head
-	// remove items that are multiples of m
-	// stop when the item does not have a next
-	// if n is a factor of m, add it to factor_tracker
-	// return pointer to new head
+// write m
+	write_val = write(fd1, &m, sizeof(int));
+	if (write_val > 0) {
+		printf("ppid: %d | pid: %d | ", getppid(), getpid());
+		printf("wrote m value to pipe: %d\n", m);
+	}
 
-	ll_item *new_head = head;
+// write array_len
+	write_val = write(fd1, &array_len, sizeof(int));
+	if (write_val > 0) {
+		printf("ppid: %d | pid: %d | ", getppid(), getpid());
+		printf("wrote array_len to pipe: %d\n", array_len);
+	}
 
-	ll_item *current = head;
-	ll_item * prev;
-	ll_item * next;
-	
-	while (current) {
-		int cur_val = current->value;
-		printf("%d\n", cur_val);
-		if ((cur_val % m) == 0) {
-			printf(" %d is a multiple of %d! remove it\n", cur_val, m);
-			// is a multiple; remove it
-			if (current->prev && current->next) {
-				// we're not removing head or tail. fix all links
-				prev = current->prev;
-				next = current->next;
-				prev->next = next;
-				next->prev = prev;
-				free(current);
-			} else if (current->next){
-				// we're removing the head, return pointer to the next item (new head)
-				printf("remove head!\n");
-				next = current->next;
-				next->prev = NULL;
-				new_head = next;
-				free(current);
-			} else {
-				// we're removing the tail and we're done
-				printf("remove tail!\n");
-				prev = current->prev;
-				prev->next = NULL;
-				free(current);
-				break;
-			}
+// write all values of the current array
+	for (int i = 0; i < array_len; i++) {
+		write_val = write(fd1, &array[i], sizeof(int));
+		if (write_val > 0) {
+			printf("ppid: %d | pid: %d | ", getppid(), getpid());
+			printf("wrote value to pipe: %d\n", array[i]);
 		}
-		current = current->next;
 	}
-	// done: return new_head, which may or may not have changed
-	return new_head;
-}
-
-int next_m(ll_item *head) {
-	// return the next m for the filter.
-	return head->value; 
-}
-
-ll_item* push(ll_item *head, int n) {
-	// push item to the linked list at head
-	// return pointer to new head
-	ll_item *current = new_ll_item(n); 
-	// todo: this malloc will need to be cleaned up later
-	head->prev = current;
-	current->next = head;
-	return current;
 }
 
 int main(int argc, char **argv) {
-	// argument check
+	int og_pid = getpid();
+
+// argument check
 	if (argc != 2 || strtol(argv[1], NULL, 10) < 1) {
 		fprintf(stderr, "Usage: \n\tpfact n\n");
-		exit(1);
+		exit(-1);
 	}
 
 	int n = strtol(argv[1], NULL, 10);
 
-
-	// int current_filter = next_m(head);
-	// next filter is the smallest integer in the array, or the array head
-
-	// testing LL
-	ll_item *head = init_ll(n);
-	walk_ll(head);
-
-	ll_item *factor_tracker;
-	head = filter_ll(head, 2, factor_tracker);
-	walk_ll(head);
-
-
-	// set up pipe
-	// make pipe and file descriptors
-	// fork so both processes get a copy
-	// redirect on the parent, close the right fds
-	// redirect on the child, close the right fds
-	// do things
-
-	int fd[2]; // file descriptors
-	int r; // store fork() return value
-
-	if (pipe(fd) == -1) {
-		// pipe failed
-		perror("pipe");
-		exit(1);
+// intialize array from 2 to n
+	int *array = malloc((n-1)*sizeof(int));
+	for (int i = 2; i <= n; i++ ) {
+		array[i-2] = i;
+		printf("%d\n", i);
 	}
 
-	r = fork();
+	int array_len = n-1;
 
-	if (r > 0) {
-		// is parent
-		// write to fd(1)
-		// close all the other stuff
+	int found_count = 0;
+int factors[2]; // we will find at most 2 factors
 
-		// never reads from pipe; close fd[0]
-    	if (close(fd[0]) == -1) {
-      		perror("close");
-    	}
+int m;
 
-    	// write 1 to pipe
-    	int one = 1;
-    	int two = 2;
-    	int three = 3;
-    	int four = 4;
+int hasSpawn = 0;
 
-    	int write_val = write(fd[1], &one, sizeof(int));
-    	write(fd[1], &two, sizeof(int));
-    	write(fd[1], &three, sizeof(int));
-    	write(fd[1], &four, sizeof(int));
+int fd[2]; // file descriptors
 
-    	printf("write_val = %d\n", write_val);
-    	if (write_val < 0) {
-    		// write failed
-    		perror("write");
-    		exit(1);
-    	}
+if (pipe(fd) == -1) {
+// pipe failed
+	perror("pipe");
+	exit(-1);
+}
 
-	} else if (r == 0) {
-		// is child
-		// reads from fd[0]
-		// close the other stuff
+while(hasSpawn != 1) {
+m = array[0]; // whatever is at the head of the array
+printf("ppid: %d | pid: %d | ", getppid(), getpid());
+printf("head of array is: %d\n", array[0]);
 
-		// never writes to pipe; close fd[1]
-    	if (close(fd[1]) == -1) {
-      		perror("close");
-    	}
+// if the next number is bigger than the current filter, we know the filter has been run
 
-    	int readbuf;
-    	int read_val = read(fd[0], &readbuf, sizeof(readbuf));
-    	printf("read_val = %d\n", read_val);
-    	if (read_val > 0) {
-    		printf("readbuf contains: %d\n", readbuf);
-    	}
 
-    	read_val = read(fd[0], &readbuf, sizeof(readbuf));
-    	printf("read_val = %d\n", read_val);
-    	if (read_val > 0) {
-    		printf("readbuf contains: %d\n", readbuf);
-    	}
+// if the next filter would be greater than sqrt(n), stop
+if ((double) m > sqrt((double) n)) {
+	printf("ppid: %d | pid: %d | ", getppid(), getpid());
+	printf("m > sqrt(n)! stop\n");
 
-    	read_val = read(fd[0], &readbuf, sizeof(readbuf));
-    	printf("read_val = %d\n", read_val);
-    	if (read_val > 0) {
-    		printf("readbuf contains: %d\n", readbuf);
-    	}
+// do condition checks
+// if we have found exactly one factor so far:
+	if (found_count == 1) {
+		printf("Have exactly one prime factor\n");
+		int other_factor = n / factors[0];
+	// search remaining array for other_factor
+		int both_prime;
+		for (int i = 0; i < array_len; i++) {
+			if (array[i] == other_factor) {
+				both_prime = 1;
+			}
+		}
 
-    	read_val = read(fd[0], &readbuf, sizeof(readbuf));
-    	printf("read_val = %d\n", read_val);
-    	if (read_val > 0) {
-    		printf("readbuf contains: %d\n", readbuf);
-    	}
+		if (both_prime) {
+			printf("Did division check, both factors are prime\n");
+			printf("%d %d %d\n", n, factors[0], other_factor);
+			return 0;
+		} else {
+			printf("Did division check, other factor is not prime\n");
+			printf("%d is not the product of two primes\n", n);
+			return 0;
+		}
+	} else if (found_count == 0) {
+		printf("%d is prime\n", n);
+		return 0;
 	}
 
+	break;
+}
+
+// check if n is multiple of m
+printf("ppid: %d | pid: %d | ", getppid(), getpid());
+printf("Check if n = %d is multiple of m = %d\n", n, m);
+if ((n % m) == 0) { 
+// special case: is n = m^2?
+	if (n == m*m) {
+		printf("ppid: %d | pid: %d | ", getppid(), getpid());
+		printf("special perfect square case\n");
+		printf("%d %d %d\n", n, m, m);
+		return 0;
+	}
+
+	printf("ppid: %d | pid: %d | ", getppid(), getpid());
+	printf("Adding to factors list: n = %d is multiple of m = %d\n", n, m);
+	found_count += 1;
+	factors[found_count-1] = m;
+// add a factor to factors list
+}
+
+// if we have two factors now, exit
+if (found_count == 2) {
+	printf("Case: found 2 factors\n");
+	printf("%d is not the product of 2 primes\n", n);
 	return 0;
 }
+
+// otherwise we're in business
+
+printf("About to make a fork(). May I? (type 1 if yes)\n");
+int canmake = 0;
+scanf("%d", &canmake);
+
+int r; // store fork() return value
+
+if (canmake == 1) {
+	r = fork();
+} else {
+	printf("fork from pid %d canceled by user.\n", getpid());
+	exit(-1);
+}
+
+if (r > 0) {
+// is parent
+
+// close read
+	if (close(fd[0]) == -1) {
+		perror("close");
+	}
+
+	writeData(fd[1], found_count, factors, m, array_len, array);
+
+} else if (r == 0) {
+
+	int readbuf;
+
+	int read_val = read(fd[0], &readbuf, sizeof(readbuf));
+	found_count = readbuf;
+	printf("ppid: %d | pid: %d | ", getppid(), getpid());
+	printf("read found_count = %d\n", found_count);
+
+	if (found_count > 0) {
+	// read the found factors
+		for (int i = 0; i < found_count; i++) {
+			read_val = read(fd[0], &readbuf, sizeof(readbuf));
+			factors[i] = readbuf;
+			printf("read factor[i] = %d\n", factors[i]);
+		}
+	}
+
+	read_val = read(fd[0], &readbuf, sizeof(readbuf));
+	m = readbuf;
+	printf("ppid: %d | pid: %d | ", getppid(), getpid());
+	printf("read m = %d\n", m);
+
+
+
+	read_val = read(fd[0], &readbuf, sizeof(readbuf));
+// printf("read_val = %d\n", read_val);
+
+	if (read_val > 0) {
+		array_len = readbuf;
+		printf("ppid: %d | pid: %d | ", getppid(), getpid());
+		printf("read: array length is: %d\n", array_len);
+	} else {
+		fprintf(stderr, "Error: read returned %d\n", read_val);
+	}
+
+// walk through input list and filter before writing to the next filter
+	int filtered_len = array_len;
+	for (int i = 0; i < array_len; i++) {
+		read_val = read(fd[0], &readbuf, sizeof(readbuf));
+		if (read_val > 0) {
+			printf("ppid: %d | pid: %d | ", getppid(), getpid());
+			printf("Reading array value: %d\n", readbuf);
+			if ((array[i] % m) == 0) {
+				printf("Remove: %d\n", array[i]);
+			// remove this
+			array[i] = 0; // zero out for removal later
+			filtered_len -= 1;
+		}
+	} else {
+		fprintf(stderr, "Error: read returned %d\n", read_val);
+	}
+}
+
+int *newarray = malloc(sizeof(int) * filtered_len);
+// collect the non-zero items from array
+int j = 0;
+for (int i = 0; i < array_len; i++) {
+	if (array[i] != 0) {
+		printf("newarray[%d] is now array[%d] = %d\n", j, i, array[i]);
+		newarray[j] = array[i];
+		j++;
+	}
+}
+
+// free array* and replace it, and update len
+int *temp = array;
+free(temp);
+array = newarray; 
+array_len = filtered_len;
+printf("array is now:\n");
+for (int i = 0; i < array_len; i++) {
+	printf("%d, ", array[i]);
+}
+printf("\n");
+m = array[0];
+
+
+
+//  
+
+} else {
+// problem
+	perror("fork");
+	exit(-1);
+
+}
+
+int status;
+wait(&status);
+if (WIFEXITED(status)) {
+	int returned = WEXITSTATUS(status);
+	if (returned < 0) {
+		fprintf(stderr, "pid %d received a negative return value\n", getpid());
+		exit(-1);
+	}
+	printf("ppid: %d | pid: %d | ", getppid(), getpid());
+	printf("exited normally with status %d\n", returned);
+	printf("pid %d is returning %d\n", getpid(), returned+1);
+	if (getpid() == og_pid) {
+		int result = returned+1;
+		printf("Number of filters = %d\n", result);
+	}
+	return returned+1;
+}
+
+
+
+}
+}
+
