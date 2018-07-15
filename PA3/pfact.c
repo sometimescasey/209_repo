@@ -49,10 +49,20 @@ int main(int argc, char **argv) {
 	if (argc != 2 || strtol(argv[1], NULL, 10) < 1) {
 		fprintf(stderr, "Usage: \n\tpfact n\n");
 		exit(-1);
-	} else if (strtol(argv[1], NULL, 10) == 1) {
-		// special case
-		fprintf(stderr, "ERROR: 1 is not prime\n");
+	} 
+	
+	int user_arg = strtol(argv[1], NULL, 10);
+	double int_check1 = strtod(argv[1], NULL);
+	double int_check2 = (double)(int)(int_check1);
+	if ((int_check1 - int_check2) != 0.0) {
+		// not an integer
+		fprintf(stderr, "Usage: \n\tpfact n\n");
 		exit(-1);
+	} else if (user_arg == 1) {
+		// special case 1
+		printf("1 is not prime\n");
+		printf("Number of filters = 0\n");
+		return 0;
 	}
 
 	int n = strtol(argv[1], NULL, 10);
@@ -83,24 +93,14 @@ if (pipe(fd) == -1) {
 
 while(hasSpawn != 1) {
 m = array[0]; // whatever is at the head of the array
-// printf("ppid: %d | pid: %d | ", getppid(), getpid());
-// printf("head of array is: %d\n", array[0]);
-
-// if the next number is bigger than the current filter, we know the filter has been run
-
-
-// if the next filter would be greater than sqrt(n), stop
 if ((double) m > sqrt((double) n)) {
-	// printf("ppid: %d | pid: %d | ", getppid(), getpid());
-	// printf("m > sqrt(n)! stop\n");
 
 // do condition checks
 // if we have found exactly one factor so far:
 	if (found_count == 1) {
-		// printf("Have exactly one prime factor\n");
 		int other_factor = n / factors[0];
 	// search remaining array for other_factor
-		int both_prime;
+		int both_prime = 0;
 		for (int i = 0; i < array_len; i++) {
 			if (array[i] == other_factor) {
 				both_prime = 1;
@@ -108,36 +108,42 @@ if ((double) m > sqrt((double) n)) {
 		}
 
 		if (both_prime) {
-			// printf("Did division check, both factors are prime\n");
 			printf("%d %d %d\n", n, factors[0], other_factor);
-			return 0;
+			// return 0;
 		} else {
-			// printf("Did division check, other factor is not prime\n");
 			printf("%d is not the product of two primes\n", n);
-			return 0;
+			// return 0;
 		}
+		// return 0;
 	} else if (found_count == 0) {
 		printf("%d is prime\n", n);
-		return 0;
+		// return 0;
 	}
 
+	if (getpid() == og_pid) { 
+		// no filters ever ran; special case
+		printf("Number of filters = 0\n");
+	}
+
+	return 0;
 	break;
 }
 
 // check if n is multiple of m
-// printf("ppid: %d | pid: %d | ", getppid(), getpid());
-// printf("Check if n = %d is multiple of m = %d\n", n, m);
 if ((n % m) == 0) { 
 // special case: is n = m^2?
 	if (n == m*m) {
-		// printf("ppid: %d | pid: %d | ", getppid(), getpid());
-		// printf("special perfect square case\n");
 		printf("%d %d %d\n", n, m, m);
+
+		
+		if (getpid() == og_pid) { 
+			// no filters ever ran; special case
+		printf("Number of filters = 0\n");
+		}
+
 		return 0;
 	}
 
-	// printf("ppid: %d | pid: %d | ", getppid(), getpid());
-	// printf("Adding to factors list: n = %d is multiple of m = %d\n", n, m);
 	found_count += 1;
 	factors[found_count-1] = m;
 // add a factor to factors list
@@ -145,25 +151,14 @@ if ((n % m) == 0) {
 
 // if we have two factors now, exit
 if (found_count == 2) {
-	// printf("Case: found 2 factors\n");
 	printf("%d is not the product of two primes\n", n);
 	return 0;
 }
 
 // otherwise we're in business
 
-// printf("About to make a fork(). May I? (type 1 if yes)\n");
-// int canmake = 0;
-// scanf("%d", &canmake);
-
 int r; // store fork() return value
-
-// if (canmake == 1) {
-	r = fork();
-// } else {
-// 	printf("fork from pid %d canceled by user.\n", getpid());
-// 	exit(-1);
-// }
+r = fork();
 
 if (r > 0) {
 // is parent
@@ -182,8 +177,6 @@ if (r > 0) {
 
 	int read_val = read(fd[0], &readbuf, sizeof(readbuf));
 	found_count = readbuf;
-	// printf("ppid: %d | pid: %d | ", getppid(), getpid());
-	// printf("read found_count = %d\n", found_count);
 
 	if (found_count > 0) {
 	// read the found factors
@@ -196,20 +189,15 @@ if (r > 0) {
 
 	read_val = read(fd[0], &readbuf, sizeof(readbuf));
 	m = readbuf;
-	// printf("ppid: %d | pid: %d | ", getppid(), getpid());
-	// printf("read m = %d\n", m);
 
 
 
 	read_val = read(fd[0], &readbuf, sizeof(readbuf));
-// printf("read_val = %d\n", read_val);
 
 	if (read_val > 0) {
 		array_len = readbuf;
-		// printf("ppid: %d | pid: %d | ", getppid(), getpid());
-		// printf("read: array length is: %d\n", array_len);
 	} else {
-		// fprintf(stderr, "Error: read returned %d\n", read_val);
+		fprintf(stderr, "Error: read returned %d\n", read_val);
 	}
 
 // walk through input list and filter before writing to the next filter
@@ -217,10 +205,7 @@ if (r > 0) {
 	for (int i = 0; i < array_len; i++) {
 		read_val = read(fd[0], &readbuf, sizeof(readbuf));
 		if (read_val > 0) {
-			// printf("ppid: %d | pid: %d | ", getppid(), getpid());
-			// printf("Reading array value: %d\n", readbuf);
 			if ((array[i] % m) == 0) {
-				// printf("Remove: %d\n", array[i]);
 			// remove this
 			array[i] = 0; // zero out for removal later
 			filtered_len -= 1;
@@ -235,7 +220,6 @@ int *newarray = malloc(sizeof(int) * filtered_len);
 int j = 0;
 for (int i = 0; i < array_len; i++) {
 	if (array[i] != 0) {
-		// printf("newarray[%d] is now array[%d] = %d\n", j, i, array[i]);
 		newarray[j] = array[i];
 		j++;
 	}
@@ -246,42 +230,34 @@ int *temp = array;
 free(temp);
 array = newarray; 
 array_len = filtered_len;
-// printf("array is now:\n");
-// for (int i = 0; i < array_len; i++) {
-// 	printf("%d, ", array[i]);
-// }
-// printf("\n");
 m = array[0];
 
 
-
-//  
-
 } else {
-// problem
+// fork problem
 	perror("fork");
 	exit(-1);
 
 }
 
+int filter_count = 0;
+
 int status;
 wait(&status);
-if (WIFEXITED(status)) {
+
+
+	if (WIFEXITED(status)) {
 	int returned = WEXITSTATUS(status);
 	if (returned < 0) {
 		fprintf(stderr, "pid %d received a negative return value\n", getpid());
 		exit(-1);
 	}
-	// printf("ppid: %d | pid: %d | ", getppid(), getpid());
-	// printf("exited normally with status %d\n", returned);
-	// printf("pid %d is returning %d\n", getpid(), returned+1);
 	if (getpid() == og_pid) {
-		int result = returned+1;
-		printf("Number of filters = %d\n", result);
+		filter_count = returned+1;
+		printf("Number of filters = %d\n", filter_count);
 	}
 	return returned+1;
 }
-
 
 
 }
