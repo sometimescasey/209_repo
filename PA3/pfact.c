@@ -77,189 +77,178 @@ int main(int argc, char **argv) {
 	int array_len = n-1;
 
 	int found_count = 0;
-int factors[2]; // we will find at most 2 factors
+	int factors[2]; // we will find at most 2 factors
 
-int m;
+	int m;
 
-int hasSpawn = 0;
+	int hasSpawn = 0;
 
-int fd[2]; // file descriptors
+	int fd[2]; // file descriptors
 
-if (pipe(fd) == -1) {
-// pipe failed
-	perror("pipe");
-	exit(-1);
-}
+	if (pipe(fd) == -1) {
+	// pipe failed
+		perror("pipe");
+		exit(-1);
+	}
 
-while(hasSpawn != 1) {
-m = array[0]; // whatever is at the head of the array
-if ((double) m > sqrt((double) n)) {
+	while(hasSpawn != 1) {
+	m = array[0]; // whatever is at the head of the array
+	if ((double) m > sqrt((double) n)) {
 
-// do condition checks
-// if we have found exactly one factor so far:
-	if (found_count == 1) {
-		int other_factor = n / factors[0];
-	// search remaining array for other_factor
-		int both_prime = 0;
-		for (int i = 0; i < array_len; i++) {
-			if (array[i] == other_factor) {
-				both_prime = 1;
+	// do condition checks
+	// if we have found exactly one factor so far:
+		if (found_count == 1) {
+			int other_factor = n / factors[0];
+		// search remaining array for other_factor
+			int both_prime = 0;
+			for (int i = 0; i < array_len; i++) {
+				if (array[i] == other_factor) {
+					both_prime = 1;
+				}
 			}
+
+			if (both_prime) {
+				printf("%d %d %d\n", n, factors[0], other_factor);
+				// return 0;
+			} else {
+				printf("%d is not the product of two primes\n", n);
+				// return 0;
+			}
+			// return 0;
+		} else if (found_count == 0) {
+			printf("%d is prime\n", n);
+			// return 0;
 		}
 
-		if (both_prime) {
-			printf("%d %d %d\n", n, factors[0], other_factor);
-			// return 0;
-		} else {
-			printf("%d is not the product of two primes\n", n);
-			// return 0;
-		}
-		// return 0;
-	} else if (found_count == 0) {
-		printf("%d is prime\n", n);
-		// return 0;
-	}
-
-	if (getpid() == og_pid) { 
-		// no filters ever ran; special case
-		printf("Number of filters = 0\n");
-	}
-
-	return 0;
-	break;
-}
-
-// check if n is multiple of m
-if ((n % m) == 0) { 
-// special case: is n = m^2?
-	if (n == m*m) {
-		printf("%d %d %d\n", n, m, m);
-
-		
 		if (getpid() == og_pid) { 
 			// no filters ever ran; special case
-		printf("Number of filters = 0\n");
+			printf("Number of filters = 0\n");
 		}
 
 		return 0;
 	}
 
-	found_count += 1;
-	factors[found_count-1] = m;
-// add a factor to factors list
-}
-
-// if we have two factors now, exit
-if (found_count == 2) {
-	printf("%d is not the product of two primes\n", n);
-	return 0;
-}
-
-// otherwise we're in business
-
-int r; // store fork() return value
-r = fork();
-
-if (r > 0) {
-// is parent
-
-// close read
-	if (close(fd[0]) == -1) {
-		perror("close");
-	}
-
-	writeData(fd[1], found_count, factors, m, array_len, array);
-
-} else if (r == 0) {
-	// is child
-
-	int readbuf;
-
-	int read_val = read(fd[0], &readbuf, sizeof(readbuf));
-	found_count = readbuf;
-
-	if (found_count > 0) {
-	// read the found factors
-		for (int i = 0; i < found_count; i++) {
-			read_val = read(fd[0], &readbuf, sizeof(readbuf));
-			factors[i] = readbuf;
-			// printf("read factor[i] = %d\n", factors[i]);
+	// check if n is multiple of m
+	if ((n % m) == 0) { 
+	// special case: is n = m^2?
+		if (n == m*m) {
+			printf("%d %d %d\n", n, m, m);
+			
+			if (getpid() == og_pid) { 
+			// no filters ever ran; special case
+				printf("Number of filters = 0\n");
+			}
+			return 0;
 		}
+
+		found_count += 1;
+		factors[found_count-1] = m;
+	// add a factor to factors list
 	}
 
-	read_val = read(fd[0], &readbuf, sizeof(readbuf));
-	m = readbuf;
-
-
-
-	read_val = read(fd[0], &readbuf, sizeof(readbuf));
-
-	if (read_val > 0) {
-		array_len = readbuf;
-	} else {
-		fprintf(stderr, "Error: read returned %d\n", read_val);
+	// if we have two factors now, exit
+	if (found_count == 2) {
+		printf("%d is not the product of two primes\n", n);
+		return 0;
 	}
 
-// walk through input list and filter before writing to the next filter
-	int filtered_len = array_len;
-	for (int i = 0; i < array_len; i++) {
+	// otherwise we're in business
+
+	int r; // store fork() return value
+	r = fork();
+
+	if (r > 0) {
+	// is parent
+
+	// close read
+		if (close(fd[0]) == -1) {
+			perror("close");
+		}
+
+		writeData(fd[1], found_count, factors, m, array_len, array);
+
+	} else if (r == 0) {
+		// is child
+
+		int readbuf;
+
+		int read_val = read(fd[0], &readbuf, sizeof(readbuf));
+		found_count = readbuf;
+
+		if (found_count > 0) {
+		// read the found factors
+			for (int i = 0; i < found_count; i++) {
+				read_val = read(fd[0], &readbuf, sizeof(readbuf));
+				factors[i] = readbuf;
+			}
+		}
+
 		read_val = read(fd[0], &readbuf, sizeof(readbuf));
+		m = readbuf;
+
+		read_val = read(fd[0], &readbuf, sizeof(readbuf));
+
 		if (read_val > 0) {
-			if ((array[i] % m) == 0) {
-			// remove this
-			array[i] = 0; // zero out for removal later
-			filtered_len -= 1;
+			array_len = readbuf;
+		} else {
+			fprintf(stderr, "Error: read returned %d\n", read_val);
 		}
+
+	// walk through input list and filter
+		int filtered_len = array_len;
+		for (int i = 0; i < array_len; i++) {
+			read_val = read(fd[0], &readbuf, sizeof(readbuf));
+			if (read_val > 0) {
+				if ((array[i] % m) == 0) {
+				// remove this
+				array[i] = 0; // zero out for removal later
+				filtered_len -= 1;
+			}
+		} else {
+			fprintf(stderr, "Error: read returned %d\n", read_val);
+		}
+	}
+
+	int *newarray = malloc(sizeof(int) * filtered_len);
+	int j = 0;
+	for (int i = 0; i < array_len; i++) {
+		if (array[i] != 0) {
+			newarray[j] = array[i];
+			j++;
+		}
+	}
+
+	int *temp = array;
+	free(temp);
+	array = newarray; 
+	array_len = filtered_len;
+	m = array[0];
+
+
 	} else {
-		fprintf(stderr, "Error: read returned %d\n", read_val);
+		perror("fork");
+		exit(-1);
+
 	}
-}
 
-int *newarray = malloc(sizeof(int) * filtered_len);
-// collect the non-zero items from array
-int j = 0;
-for (int i = 0; i < array_len; i++) {
-	if (array[i] != 0) {
-		newarray[j] = array[i];
-		j++;
-	}
-}
+	int filter_count = 0;
 
-// free array* and replace it, and update len
-int *temp = array;
-free(temp);
-array = newarray; 
-array_len = filtered_len;
-m = array[0];
-
-
-} else {
-// fork problem
-	perror("fork");
-	exit(-1);
-
-}
-
-int filter_count = 0;
-
-int status;
-wait(&status);
-
+	int status;
+	wait(&status);
 
 	if (WIFEXITED(status)) {
-	int returned = WEXITSTATUS(status);
-	if (returned < 0) {
-		fprintf(stderr, "pid %d received a negative return value\n", getpid());
-		exit(-1);
+		int returned = WEXITSTATUS(status);
+		if (returned < 0) {
+			fprintf(stderr, "pid %d received a negative return value\n", getpid());
+			exit(-1);
+		}
+		if (getpid() == og_pid) {
+			filter_count = returned+1;
+			printf("Number of filters = %d\n", filter_count);
+		}
+		return returned+1;
 	}
-	if (getpid() == og_pid) {
-		filter_count = returned+1;
-		printf("Number of filters = %d\n", filter_count);
+
 	}
-	return returned+1;
-}
-
-
-}
 }
 
