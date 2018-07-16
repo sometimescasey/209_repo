@@ -60,9 +60,10 @@ int main(int argc, char **argv) {
     timer.it_value.tv_sec = seconds;
     timer.it_value.tv_usec = 0;
 
+    // NOTE: must initialize these even if we don't use them, or can get stick in infloop
     timer.it_interval.tv_sec = 0;
     timer.it_interval.tv_usec = 0;
-    
+
     setitimer(ITIMER_PROF, &timer, NULL);
 
     num_reads = 0;
