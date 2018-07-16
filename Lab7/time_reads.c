@@ -59,6 +59,10 @@ int main(int argc, char **argv) {
     struct itimerval timer;
     timer.it_value.tv_sec = seconds;
     timer.it_value.tv_usec = 0;
+
+    timer.it_interval.tv_sec = 0;
+    timer.it_interval.tv_usec = 0;
+    
     setitimer(ITIMER_PROF, &timer, NULL);
 
     num_reads = 0;
