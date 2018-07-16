@@ -41,10 +41,17 @@ int main(void) {
 
     // need to pad user_id to 10 bytes, MAX_PASSWORD
     // write directly to pipe
-    write(fd[1], user_id, strlen(user_id)+1);
-    for (int i = 0; i < (MAX_PASSWORD - strlen(user_id) - 1); i++) {
-      write(fd[1], "\n", strlen("\n"));
+    write(fd[1], user_id, strlen(user_id)-1);
+    // printf("strlen(user_id) is %ld\n", strlen(user_id));
+    int padding = MAX_PASSWORD - (strlen(user_id) - 1);
+    // printf("padding: %d\n", padding);
+    if (padding > 0) {
+      for (int i = 0; i < (padding); i++) {
+      write(fd[1], "\n", 1);
+      }  
     }
+    
+    
     write(fd[1], password, strlen(password)+1);
     close(fd[1]);
   } 
