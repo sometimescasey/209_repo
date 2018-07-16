@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
+
 #define write_to 100
 
 /* Write random integers (in binary) to a file with the name given by the command line
@@ -23,11 +24,15 @@ int main(int argc, char **argv) {
     // TODO: complete this program according its description above.
     /* Intialize random number generator */
    srand(time(NULL));
-
     int r_i;
+
     for (int i = 0; i < write_to; i++) {
+        // random version
         r_i = rand() % write_to;
-        fwrite(&r_i, 1, 1, fp); // writing binary so each write is 1 byte
+        fwrite(&r_i, 1, 1, fp); // each write is 1 byte
+
+        // in-order vesion
+        // fwrite(&i, 1, 1, fp);
     }
 
     fclose(fp);
