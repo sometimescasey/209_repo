@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
         result = fread(buffer, 1, 1, fp);
         if (result == 1) {
           num_reads += 1;
-          printf("%d\n", *buffer);  
+          // printf("%d\n", *buffer);  
         } else {
           perror("fread");
           exit(1);
