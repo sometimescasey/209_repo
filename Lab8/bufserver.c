@@ -103,7 +103,7 @@ int find_network_newline(const char *buf, int n) {
     while ((buf[i]) != '\0') {
         if (buf[i] == '\r') {
             if ((buf[i+1]) == '\n') {
-                return i+2;
+                return i+1;
             }
         } 
         i++;
