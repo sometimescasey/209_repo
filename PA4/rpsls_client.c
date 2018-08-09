@@ -20,9 +20,11 @@
     #define BUFSIZE 256
 #endif
 
-typedef struct sockaddr_in sockaddr_in;
+#ifndef GESTUREBUF
+    #define GESTUREBUF 2
+#endif
 
-int find_network_newline(const char *buf, int n); // if this works consolidate into one file
+typedef struct sockaddr_in sockaddr_in;
 
 char* getName() {
 	char *buf = malloc(NAMEBUFFER * sizeof buf);
@@ -35,43 +37,36 @@ char* getName() {
 	return buf;
 }
 
-int main(int argc, char **argv) {
-
-	int port_offset = 0;
-	const char *hostname;
-
-	if (argc < 2 || argc > 3) {
+void checkArgs(int argc, char **argv, int* port_offset, char *hostname) {
+    if (argc < 2 || argc > 3) {
         fprintf(stderr, "Usage: rpsls_client ip_address [port_offset]\n");
         exit(1);
     }
-	else if (argc >= 2) {
-		hostname = argv[1];
-		if (argc == 3) {
-			port_offset = strtol(argv[2], NULL, 10);
-		}
-	}
+    else if (argc >= 2) {
+        strncpy(hostname, argv[1], strlen(argv[1]));
+        if (argc == 3) {
+            *port_offset = strtol(argv[2], NULL, 10);
+        }
+    }
+}
 
-	// Get player name
-	char *name = getName();
+int initConnectWriteName(int tryPort, struct hostent *hp, char *name) { 
+    // init sockaddr_in struct, connect, return sock's fd
 
-    // make my socket, with which I make outbound connections
-    int sock;
     // SOCK_STREAM is TCP (as opposed to UDP)
     // 0 is no specified socket, but we default to TCP here based on the other two settings
-    sock = socket(AF_INET, SOCK_STREAM, 0);
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
 
     // define what outbound connection to do
     sockaddr_in server_address;
-
-    // some properties to define
-    int tryPort = PORT+port_offset;
 
     // from example: Clear this field; sin_zero is used for padding for the struct.
     memset(&(server_address.sin_zero), 0, 8);
 
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(tryPort); // note that you can't put int directly here; use htons() to convert
-    server_address.sin_addr.s_addr = INADDR_ANY; // same as 0.0.0.0
+    server_address.sin_addr = *((struct in_addr *) hp->h_addr);
+    // server_address.sin_addr.s_addr = INADDR_ANY; // same as 0.0.0.0
 
     // connect() needs socket, casted pointer to server_address, and its size
     int connect_result = connect(sock, (struct sockaddr *) &server_address, sizeof(server_address)); 
@@ -92,13 +87,77 @@ int main(int argc, char **argv) {
         // write username
         int write_name;
         write_name = write(sock, name, strlen(name));
+        if (write_name < 0) {
+            perror("write");
+            exit(1);
+        }
         printf("write_name returned %d\n", write_name);
     }
 
+    return sock;
+
+}
+
+char* getGesture() {
+    char *buf = malloc(BUFSIZE * sizeof buf);
+    printf("Your gesture:\n");
+    fgets(buf, BUFSIZE, stdin);
+
+    char onechar[1];
+    strncpy(onechar, buf, 1);
+    // printf("onechar: %s | strlen: %zu | (strncmp(onechar, r, 1): %d\n", onechar, strlen(onechar), strncmp(onechar, "r", 1));
+
+    // check that it's valid
+    if ((strlen(buf) > 2) || 
+        ((strncmp(onechar, "r", 1) &&
+        strncmp(onechar, "p", 1) &&
+        strncmp(onechar, "s", 1) &&
+        strncmp(onechar, "l", 1) &&
+        strncmp(onechar, "S", 1) &&
+        strncmp(onechar, "e", 1)
+        )) == 1) {
+
+        printf("Invalid gesture, please enter [r, p, s, l, S, e].\n");
+        getGesture();
+    }
+
+    // add network line-end
+    char *lineend = "\r\n";
+    char *ges = malloc(sizeof *onechar * 3);
+    sprintf(ges, "%s%s", onechar, lineend);
+    free(buf);
+    return ges;
+}
+
+
+int main(int argc, char **argv) {
+
+	int port_offset = 0;
+	char *hostname = malloc(sizeof(*hostname) * INET_ADDRSTRLEN);
+
+    checkArgs(argc, argv, &port_offset, hostname);
+
+    // Parse IP address.
+    struct hostent *hp = gethostbyname(hostname);
+    if (hp == NULL) {
+        fprintf(stderr, "unknown host %s\n", hostname);
+        exit(1);
+    }
+
+	// Get player name
+	char *name = getName();
+
+    int tryPort = PORT+port_offset;
+    // make my socket, with which I make outbound connections
+    int sock = initConnectWriteName(tryPort, hp, name);
+
     char buffer[BUFSIZE+2];
 
+    // Wait for player 2
     while(1) {
-        const char* close_msg = "Sorry the server is full. Closing\r\n";
+        const char* close_msg = "SERVER FULL\r\n";
+        const char* wait_msg = "WAITING FOR P2\r\n";
+        const char* ready_msg = "P2 READY\r\n";
         // check for new messages from the server
         // clear buffer
         memset(buffer, '\0', sizeof(*buffer) * BUFSIZE);
@@ -111,35 +170,25 @@ int main(int argc, char **argv) {
             fprintf(stderr, "Server is full. Try again later. Closing socket.\n");
             close(sock);
             return 0;
+        } else if (strncmp(wait_msg, buffer, strlen(buffer)) == 0) {
+            continue;
+        } else if (strncmp(ready_msg, buffer, strlen(buffer)) == 0) {
+            break;
         }
+    }
 
-        // set line end just in case
-        buffer[BUFSIZE] = '\0';
+    printf("Found p2!\n");
 
-        printf("%s\n", buffer);
-
-        // write a message to the server
-        // clear buffer
-        memset(buffer, '\0', sizeof(*buffer) * BUFSIZE);
-        printf("Type a message:\n");
-        fgets(buffer, BUFSIZE, stdin);
-        int end = strlen(buffer);
-        buffer[end] = '\r';
-        buffer[end+1] = '\n'; // add network term for safety
-
-        int write_result;
-        write_result = write(sock, buffer, BUFSIZE);
-        if (write_result < 0) {
-            perror("write");
-            exit(1);
-        }
+    // Get gesture
+    
+    while(1) {
+        char *ges;
+        ges = getGesture();
     }
     
     return 0;
 
     close(sock);
-
-
 	free(name);
 
 
