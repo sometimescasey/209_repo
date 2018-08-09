@@ -31,7 +31,24 @@ typedef struct userInfo {
     char *username;
 } userInfo;
 
-int find_network_newline(const char *buf, int n);
+userInfo* initUserArray() {
+    userInfo *connections = malloc(sizeof(*connections) * MAX_CONNECTIONS);
+    for (int i = 0; i < MAX_CONNECTIONS; i++) {
+        connections[i].sock_fd = -1;
+        connections[i].username = malloc(sizeof(char) * NAMEBUFFER);
+    }
+    return connections;
+}
+
+void checkArgs(int argc, char **argv, int* port_offset) {
+    if (argc > 3) {
+        fprintf(stderr, "Usage: rpsls_server [port_offset]\n");
+        exit(1);
+    }
+    else if (argc == 2) {
+        *port_offset = strtol(argv[1], NULL, 10);
+    }
+}
 
 int max(int one, int two) {
 	if (one > two) {
@@ -93,7 +110,8 @@ int initBindListen(int tryPort) {
     return sock;
 }
 
-int acceptNewPlayer(int sock, fd_set *all_fds, userInfo *connections, int *max_fd) {
+int handleNewPlayer(int sock, fd_set *all_fds, userInfo *connections, int *max_fd) {
+    // reject if too many players; otherwise update array
     int new_client_fd = -1;
     char nameBuffer[NAMEBUFFER+1];
 
@@ -103,6 +121,10 @@ int acceptNewPlayer(int sock, fd_set *all_fds, userInfo *connections, int *max_f
     peer.sin_family = PF_INET; // do I need this? isn't it autopop?
 
     new_client_fd = accept(sock, (struct sockaddr *) &peer, &peer_len);
+    if (new_client_fd < 0) {
+        // no new client yet
+        return -1;
+    }
 
     if (connections[MAX_CONNECTIONS-1].sock_fd != -1) { // only accept new connections if we have room 
         const char* close_msg = "Sorry the server is full. Closing\r\n";
@@ -150,30 +172,38 @@ int acceptNewPlayer(int sock, fd_set *all_fds, userInfo *connections, int *max_f
         }
 }
 
+void monitorForNew(int sock, fd_set *all_fds, int *max_fd, userInfo* connections) {
+    // monitors sock for new connections from clients.
+    // select updates the fd_set it receives, so we always use a copy and retain the original.
+        fd_set listen_fds = *all_fds;
+        // last parameter is a timeout block
+        int nready = select(*max_fd+1, &listen_fds, NULL, NULL, NULL);
+        if (nready == -1) {
+            perror("server: select");
+            exit(1);
+        }
+        // listen_fds has now been modified to ready ones
+
+        if (FD_ISSET(sock, &listen_fds)) {
+            // original socket has something to say; must be a new connection
+            printf("FD_ISSET\n");
+            handleNewPlayer(sock, all_fds, connections, max_fd);
+        }
+}
+
 int main(int argc, char **argv) {
 
     // TODO; remove all prints at the end
 
     // initialize array to hold user info
-    userInfo *connections = malloc(sizeof(*connections) * MAX_CONNECTIONS);
+    userInfo *connections = initUserArray();
 
-    for (int i = 0; i < MAX_CONNECTIONS; i++) {
-        connections[i].sock_fd = -1;
-        connections[i].username = malloc(sizeof(char) * NAMEBUFFER);
-    }
-
+    // get/check user args
     int port_offset = 0;
-
-    if (argc > 3) {
-        fprintf(stderr, "Usage: rpsls_server [port_offset]\n");
-        exit(1);
-    }
-    else if (argc == 2) {
-        port_offset = strtol(argv[1], NULL, 10);
-    }
-
+    checkArgs(argc, argv, &port_offset);
     int tryPort = PORT+port_offset;
 
+    // set up socket
     int sock = initBindListen(tryPort);
 
     fd_set all_fds;
@@ -184,69 +214,47 @@ int main(int argc, char **argv) {
 
     printf("Waiting for connections...\n");
 
-    while(1) { // inf loop
+    fd_set listen_fds;
 
-        // select updates the fd_set it receives, so we always use a copy and retain the original.
-        fd_set listen_fds = all_fds;
-        // last parameter is a timeout block
-        int nready = select(max_fd+1, &listen_fds, NULL, NULL, NULL);
-        if (nready == -1) {
-            perror("server: select");
-            exit(1);
-        }
-        // listen_fds has been modified to a ready one
-
-        if (FD_ISSET(sock, &listen_fds)) {
-            printf("FD_ISSET\n");
-            acceptNewPlayer(sock, &all_fds, connections, &max_fd);
-        //     // if sock is the ready one, it must be a new connection; accept it
-        //     new_client_fd = accept(sock, (struct sockaddr *) &peer, &peer_len);
-
-        //     if (connections[MAX_CONNECTIONS-1].sock_fd != -1) { // only accept new connections if we have room 
-        //         const char* close_msg = "Sorry the server is full. Closing\r\n";
-        //         write(new_client_fd, close_msg, strlen(close_msg));                    
-        //     } else {
-        //     // get new client's username, which is the first thing they write
-        //         memset(nameBuffer, '\0', sizeof(*nameBuffer) * NAMEBUFFER);
-        //         int read_name;
-        //         read_name = read(new_client_fd, nameBuffer, NAMEBUFFER);
-
-        //         if (read_name < 0) {
-        //             perror("read");
-        //             exit(1);
-        //         }
-
-        //         printf("Accepted connection from peer %d, username %s\n", new_client_fd, nameBuffer);
-        //         const char* welcome_template = "Hi %s! Waiting for another player...\r\n";
-        //         char *welcome_message = malloc(sizeof(*welcome_message) * BUFSIZE);
-        //         sprintf(welcome_message, welcome_template, nameBuffer);
-        //         write(new_client_fd, welcome_message, strlen(welcome_message));
-
-        //     // update our userInfo array
-        //         int user_index = 0;
-        //         while (user_index < MAX_CONNECTIONS && connections[user_index].sock_fd != -1) {
-        //         user_index++; // find next empty slot in the array
-        //     }
-
-        //     connections[user_index].sock_fd = new_client_fd;
-        //     strncpy(connections[user_index].username, nameBuffer, strlen(nameBuffer));
-        //     // don't do this: this sets the pointers equal to each other
-        //     // connections[user_index].username = nameBuffer;
-        //     printf("set user_index = %d to username %s\n", user_index, nameBuffer);
-        //     for (int q = 0; q < MAX_CONNECTIONS; q++) {
-        //         printf("connections[%d].username =%s, sock_fd=%d\n", 
-        //             q, 
-        //             connections[q].username, 
-        //             connections[q].sock_fd);
-        //     }
-
-        //     // update max_fd if needed
-        //     if (new_client_fd > max_fd) max_fd = new_client_fd;
-
-        //     // add to our &all_fds
-        //     FD_SET(new_client_fd, &all_fds);
+    // first while loop: wait for two players
+    while(connections[MAX_CONNECTIONS-1].sock_fd < 0) { // loop until a second player connects
+        monitorForNew(sock, &all_fds, &max_fd, connections);
+        // // select updates the fd_set it receives, so we always use a copy and retain the original.
+        // listen_fds = all_fds;
+        // // last parameter is a timeout block
+        // int nready = select(max_fd+1, &listen_fds, NULL, NULL, NULL);
+        // if (nready == -1) {
+        //     perror("server: select");
+        //     exit(1);
         // }
+        // // listen_fds has now been modified to ready ones
+
+        // if (FD_ISSET(sock, &listen_fds)) {
+        //     // original socket has something to say; must be a new connection
+        //     printf("FD_ISSET\n");
+        //     handleNewPlayer(sock, &all_fds, connections, &max_fd);
+        // }
+
+        // ignore anything said any connected players until we have 2
     }
+
+    while(1){
+        monitorForNew(sock, &all_fds, &max_fd, connections);
+        // // select updates the fd_set it receives, so we always use a copy and retain the original.
+        // listen_fds = all_fds;
+        // // last parameter is a timeout block
+        // int nready = select(max_fd+1, &listen_fds, NULL, NULL, NULL);
+        // if (nready == -1) {
+        //     perror("server: select");
+        //     exit(1);
+        // }
+        // // listen_fds has now been modified to ready ones
+
+        // if (FD_ISSET(sock, &listen_fds)) {
+        //     // original socket has something to say; must be a new connection
+        //     printf("FD_ISSET\n");
+        //     handleNewPlayer(sock, &all_fds, connections, &max_fd);
+        // }
 
         // check other clients for updates; iterate thru all (since more than one can be ready)
         int current_fd;
@@ -286,15 +294,12 @@ int main(int argc, char **argv) {
                 }
 
             }
-        }
-
-
-
-        
+        }   
         
     }
 
-    
+    // cleanup
+    free(connections);
 
 	return 0;
 
