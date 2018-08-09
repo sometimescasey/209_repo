@@ -12,6 +12,13 @@
     #define BUFSIZE 256
 #endif
 
+int max(int one, int two) {
+    if (one > two) {
+        return one;
+    }
+    return two;
+}
+
 int bufferedRead(int current_fd, char *output) {
         int fullLineFound = 0; 
 

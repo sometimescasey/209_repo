@@ -13,7 +13,7 @@
 #endif
 
 #ifndef NAMEBUFFER
-	#define NAMEBUFFER 20
+	#define NAMEBUFFER 22
 #endif
 
 #ifndef BUFSIZE
@@ -28,7 +28,7 @@ typedef struct sockaddr_in sockaddr_in;
 
 char* getName() {
 	char *buf = malloc(NAMEBUFFER * sizeof buf);
-	printf("What is your name? Max 20 char, (A-Za-z0-9-_ )\n");
+	printf("What is your name?\n");
 	fgets(buf, NAMEBUFFER, stdin);
     // get rid of trailing newline
     buf[strcspn(buf, "\r\n")] = 0;
@@ -83,7 +83,7 @@ int initConnectWriteName(int tryPort, struct hostent *hp, char *name) {
             exit(1);
         }
     } else {
-        printf("Successfully connected to server on port %d\n", tryPort);
+        // printf("Successfully connected to server on port %d\n", tryPort);
         // write username
         int write_name;
         write_name = write(sock, name, strlen(name));
@@ -91,34 +91,40 @@ int initConnectWriteName(int tryPort, struct hostent *hp, char *name) {
             perror("write");
             exit(1);
         }
-        printf("write_name returned %d\n", write_name);
     }
 
     return sock;
 
 }
 
-char* getGesture() {
+char* getGesture(int sock) {
+    // get gesture from user and send through socket
     char *buf = malloc(BUFSIZE * sizeof buf);
-    printf("Your gesture:\n");
-    fgets(buf, BUFSIZE, stdin);
+    int valid = 0;
 
     char onechar[1];
-    strncpy(onechar, buf, 1);
-    // printf("onechar: %s | strlen: %zu | (strncmp(onechar, r, 1): %d\n", onechar, strlen(onechar), strncmp(onechar, "r", 1));
 
-    // check that it's valid
-    if ((strlen(buf) > 2) || 
-        ((strncmp(onechar, "r", 1) &&
-        strncmp(onechar, "p", 1) &&
-        strncmp(onechar, "s", 1) &&
-        strncmp(onechar, "l", 1) &&
-        strncmp(onechar, "S", 1) &&
-        strncmp(onechar, "e", 1)
-        )) == 1) {
+    while (valid == 0) {
+        printf("Your gesture:\n");
+        fgets(buf, BUFSIZE, stdin);
 
-        printf("Invalid gesture, please enter [r, p, s, l, S, e].\n");
-        getGesture();
+        onechar[0] = '\0';
+        strncpy(onechar, buf, 1);
+        
+        // check that it's valid
+        if ((strlen(buf) > 2) || 
+            ((strncmp(onechar, "r", 1) &&
+            strncmp(onechar, "p", 1) &&
+            strncmp(onechar, "s", 1) &&
+            strncmp(onechar, "l", 1) &&
+            strncmp(onechar, "S", 1) &&
+            strncmp(onechar, "e", 1)
+            )) == 1) {
+
+            printf("Invalid gesture, please enter [r, p, s, l, S, e].\n");
+        } else {
+             valid = 1;
+        }
     }
 
     // add network line-end
@@ -126,11 +132,24 @@ char* getGesture() {
     char *ges = malloc(sizeof *onechar * 3);
     sprintf(ges, "%s%s", onechar, lineend);
     free(buf);
+
+    // write gesture to server
+    int write_ges;
+    write_ges = write(sock, ges, strlen(ges));
+    if (write_ges < 0) {
+        perror("write");
+        exit(1);
+    }
+    // printf("wrote gesture %s to server, %d bytes written\n", ges, write_ges);
+
     return ges;
 }
 
 
 int main(int argc, char **argv) {
+
+    int my_wins = 0;
+    char opponent[NAMEBUFFER];
 
 	int port_offset = 0;
 	char *hostname = malloc(sizeof(*hostname) * INET_ADDRSTRLEN);
@@ -153,7 +172,7 @@ int main(int argc, char **argv) {
 
     char buffer[BUFSIZE+2];
 
-    // Wait for player 2
+    // Loop 1: Wait for player 2
     while(1) {
         const char* close_msg = "SERVER FULL\r\n";
         const char* wait_msg = "WAITING FOR P2\r\n";
@@ -167,7 +186,7 @@ int main(int argc, char **argv) {
             perror("read");
             exit(1);
         } else if (strncmp(close_msg, buffer, strlen(buffer)) == 0){
-            fprintf(stderr, "Server is full. Try again later. Closing socket.\n");
+            // fprintf(stderr, "Server is full. Try again later. Closing socket.\n");
             close(sock);
             return 0;
         } else if (strncmp(wait_msg, buffer, strlen(buffer)) == 0) {
@@ -177,19 +196,103 @@ int main(int argc, char **argv) {
         }
     }
 
-    printf("Found p2!\n");
+    // get name
+    char oppbuffer[NAMEBUFFER];
+    memset(oppbuffer, '\0', sizeof(*oppbuffer) * (NAMEBUFFER));
+        int read_result;
+        read_result = bufferedRead(sock, oppbuffer);
+        if (read_result < 0) {
+            perror("read");
+            exit(1);
+    }
+    strncpy(opponent, oppbuffer, strlen(oppbuffer));
+    printf("Playing against %s\n", opponent);
 
-    // Get gesture
+    char *ges;
+    ges = getGesture(sock);
+
+    // Loop 2: Wait for win/lose message, or game over
+    const char* game_over_msg = "GAME OVER\r\n";
     
     while(1) {
-        char *ges;
-        ges = getGesture();
+        // check for new messages from the server
+        // clear buffer
+        memset(buffer, '\0', sizeof(*buffer) * BUFSIZE);
+        int read_result;
+        read_result = bufferedRead(sock, buffer);
+        if (strncmp(buffer, game_over_msg, strlen(game_over_msg-2)) == 0) {
+            break;
+        }
+        if (read_result < 0) {
+            perror("read");
+            exit(1);
+        }
+        char *winmessage = malloc(sizeof(char) * BUFSIZE);
+        sprintf(winmessage, "%s WINS!", name);
+        my_wins += 1;
+        if (strncmp(buffer, winmessage, strlen(winmessage)) == 0) {
+            printf("You won!\n");
+            fprintf(stderr, "win\n");
+        }  else if (strncmp(buffer, "TIE", strlen("TIE")) == 0) {
+            printf("Tie\n");
+            fprintf(stderr, "tie\n");
+        } else {
+            printf("You lost!\n");
+            fprintf(stderr, "lose\n");
+        }
+        getGesture(sock);
     }
+
+    // parse game end data from buffer
+
+    int games = 0;
+    int wins = 0;
+    int losses = 0;
+    int ties = 0;
+
+
+
+    char *pt;
+
+    pt = strtok (buffer, ",");
+    pt = strtok (NULL, ",");
+
+    char copybuf[BUFSIZE];
+
+    strncpy(copybuf, pt+2, strlen(pt-2));
+    games = strtol(copybuf, NULL, 10);
+
+    pt = strtok (NULL, ","); // NEXT: wins
+    strncpy(copybuf, pt+2, strlen(pt-2));
+    wins = strtol(copybuf, NULL, 10);
+
+    pt = strtok (NULL, ","); // NEXT: losses
+    strncpy(copybuf, pt+2, strlen(pt-2));
+    losses = strtol(copybuf, NULL, 10);
+
+    pt = strtok (NULL, ","); // NEXT: ties. note account for \r\n
+    strncpy(copybuf, pt+2, strlen(pt-4));
+    ties = strtol(copybuf, NULL, 10);
+
+    if (wins == losses) {
+        // tie
+        printf("%d total games. %s and %s tied %d-%d, %d ties\n", games, name, opponent, wins, losses, ties);
+    }
+    else if (wins > losses) {
+        // I'm the winner
+        printf("%d total games. %s wins %d-%d, %d ties\n", games, name, wins, losses, ties);
+    } else {
+        // I lost
+        printf("%d total games. %s loses %d-%d, %d ties\n", games, name, wins, losses, ties);
+    }
+
+    fprintf(stderr, "%d %d-%d\n", sock, wins, losses);
     
+    close(sock);
+    free(name);
     return 0;
 
-    close(sock);
-	free(name);
+    
 
 
 }
