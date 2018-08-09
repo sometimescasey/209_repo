@@ -206,6 +206,8 @@ int main(int argc, char **argv) {
             exit(1);
     }
     strncpy(opponent, oppbuffer, strlen(oppbuffer));
+    // kill trailing newlines
+    opponent[strcspn(opponent, "\r\n")] = 0;
     printf("Playing against %s\n", opponent);
 
     char *ges;
