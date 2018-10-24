@@ -55,13 +55,26 @@ int main() {
 		// get parent's pid
 		pid_t ppid = getppid();
 
-		printf("Please give a secret number between 0 and 1023 inclusive:\n");
-		char *buf = malloc(BUFFERSIZE * sizeof buf);
-		fgets(buf, BUFFERSIZE, stdin);
+		int valid_secret = 0;
 
-		// parse to int
-		int secret;
-		secret = strtol(buf, NULL, 10);
+		char *buf;
+
+		while (valid_secret != 1) {
+			int hi = 1023;
+			int lo = 0;
+			printf("Please give a secret number between 0 and 1023 inclusive:\n");
+			buf = malloc(BUFFERSIZE * sizeof buf);
+			fgets(buf, BUFFERSIZE, stdin);
+
+			// parse to int
+			int secret;
+			secret = strtol(buf, NULL, 10);
+
+			// value check
+			if (secret >= hi && secret <= lo) {
+				valid_secret == 1;
+			}
+		}
 		
 		// write one byte to the pipe to let parent know that it can start guessing
 		int dummy = 1;

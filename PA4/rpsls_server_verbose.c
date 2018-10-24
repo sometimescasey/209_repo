@@ -44,7 +44,7 @@ userInfo* initUserArray() {
 
 void checkArgs(int argc, char **argv, int* port_offset) {
     if (argc > 3) {
-        // fprintf(stderr, "Usage: rpsls_server [port_offset]\n");
+        fprintf(stderr, "Usage: rpsls_server [port_offset]\n");
         exit(1);
     }
     else if (argc == 2) {
@@ -66,7 +66,7 @@ int initBindListen(int tryPort) {
     int status = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
         (const char *) &on, sizeof(on));
     if (status < 0) {
-        // perror("setsockopt");
+        perror("setsockopt");
         exit(1);
     }
 
@@ -87,7 +87,7 @@ int initBindListen(int tryPort) {
         server_address.sin_port = htons(tryPort);
         bind_result = bind(sock, (struct sockaddr *) &server_address, sizeof(server_address));
         if (bind_result < 0) {
-            // perror("bind");
+            perror("bind");
             exit(1);
         }
     }
@@ -98,7 +98,7 @@ int initBindListen(int tryPort) {
     listen_result = listen(sock, MAX_CONNECTIONS); 
 
     if (listen_result < 0) {
-        // perror("listen");
+        perror("listen");
         exit(1);
     }
 
@@ -131,10 +131,11 @@ int handleNewPlayer(int sock, fd_set *all_fds, userInfo *connections, int *max_f
         read_name = read(new_client_fd, nameBuffer, NAMEBUFFER);
 
         if (read_name < 0) {
-            // perror("read");
+            perror("read");
             exit(1);
         }
 
+        printf("Accepted connection from peer %d, username %s\n", new_client_fd, nameBuffer);
         char *welcome_message = "WAITING FOR P2\r\n";
         write(new_client_fd, welcome_message, strlen(welcome_message));
 
@@ -148,6 +149,13 @@ int handleNewPlayer(int sock, fd_set *all_fds, userInfo *connections, int *max_f
             strncpy(connections[user_index].username, nameBuffer, strlen(nameBuffer));
             // don't do this: this sets the pointers equal to each other
             // connections[user_index].username = nameBuffer;
+            printf("set user_index = %d to username %s\n", user_index, nameBuffer);
+            for (int q = 0; q < MAX_CONNECTIONS; q++) {
+                printf("connections[%d].username =%s, sock_fd=%d\n", 
+                    q, 
+                    connections[q].username, 
+                    connections[q].sock_fd);
+            }
 
             // update max_fd if needed
             if (new_client_fd > *max_fd) *max_fd = new_client_fd;
@@ -164,13 +172,14 @@ void monitorForNew(int sock, fd_set *listen_fds, fd_set *all_fds, int *max_fd, u
     // last parameter is a timeout block
     int nready = select(*max_fd+1, listen_fds, NULL, NULL, NULL);
     if (nready == -1) {
-        // perror("server: select");
+        perror("server: select");
         exit(1);
     }
     // listen_fds has now been modified to ready ones
 
     if (FD_ISSET(sock, listen_fds)) {
         // original socket has something to say; must be a new connection
+        printf("FD_ISSET\n");
         handleNewPlayer(sock, all_fds, connections, max_fd);
     }
 }
@@ -181,13 +190,13 @@ void writeToAll(char *msg, userInfo *connections) {
     for (int j = 0; j < MAX_CONNECTIONS; j++) { 
         int to_fd = connections[j].sock_fd;
         if (to_fd > 0) {
-            // printf("writing to %s\n", connections[j].username);
+            printf("writing to %s\n", connections[j].username);
             // const char* msg_template = "%s: %s\n";
             // char *msg = malloc(sizeof(*msg) * BUFSIZE);
             // sprintf(msg, msg_template, connections[i].username, readBuffer);
             int written;
             written = write(to_fd, msg, strlen(msg));
-            // printf("wrote %d bytes to %d \n", written, to_fd);
+            printf("wrote %d bytes to %d \n", written, to_fd);
             // const char *term = "\r\n";
             // write(to_fd, term, 2); // write network newline
         } 
@@ -198,7 +207,7 @@ int judgeRound(char *moves) {
     // returns 0 if connections[0] won, 
     // 1 if connections[1] won,
     // -1 if tie
-    // printf("judging...\n");
+    printf("judging...\n");
 
     if (moves[0] == moves[1]) {
         return -1;
@@ -259,7 +268,7 @@ int main(int argc, char **argv) {
     FD_SET(sock, &all_fds);
     int max_fd = sock; // tracker for highest valued fd; so far it's just sock
 
-    // printf("Waiting for connections...\n");
+    printf("Waiting for connections...\n");
 
     // select updates the fd_set it receives, so we always use a copy and retain the original.
     fd_set listen_fds = all_fds;
@@ -294,9 +303,9 @@ while(stopPlaying != 1) {
         // timeout.tv_usec = 0;
 
         int nready = select(max_fd+1, &listen_fds2, NULL, NULL, NULL);
-        // printf("max_fd+1: %d, nready: %d\n", max_fd+1, nready);
+        printf("max_fd+1: %d, nready: %d\n", max_fd+1, nready);
         if (nready == -1) {
-            // perror("server: select");
+            perror("server: select");
             exit(1);
         }
         
@@ -317,22 +326,30 @@ while(stopPlaying != 1) {
 
                 // check if someone wants to end the game
                 if (strncmp(readBuffer, "e", 1) == 0) {
+                    printf("someone played an e\n");
                     stopPlaying = 1;
                     break;
                 }
 
-                moves[i] = (char) readBuffer[0]; 
+                moves[i] = (char) readBuffer[0];
+                printf("stored %c into moves[%d]\n", (char) readBuffer[0], i);
+                
                 int readBuffer_len = strlen(readBuffer); 
+                printf("readBuffer_len is %d\n", readBuffer_len);
+
+                printf("Getting connections[%d].username = %s\n", i, connections[i].username);
+                printf("Read message from client %d, username %s: %s\n", current_fd, connections[i].username, readBuffer);
             }
         }   
         
     }
+    printf("game over should go here\n");
 
     if (stopPlaying != 1) {
         // process moves, find winner
         int winner = judgeRound(moves);
         games += 1;
-        // printf("winner = %d\n", winner);
+        printf("winner = %d\n", winner);
         char *msg = malloc(sizeof *msg * BUFSIZE);
         if (winner == -1) {
             strncpy(msg, "TIE\r\n", strlen("TIE\r\n"));
@@ -341,6 +358,7 @@ while(stopPlaying != 1) {
             sprintf(msg, "%s WINS!\r\n", connections[winner].username);
             connections[winner].wins += 1;
         }
+        printf("here now!\n");
         // write to all
         writeToAll(msg, connections);
     }

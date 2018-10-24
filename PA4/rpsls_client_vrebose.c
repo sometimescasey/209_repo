@@ -13,7 +13,7 @@
 #endif
 
 #ifndef NAMEBUFFER
-	#define NAMEBUFFER 22
+	#define NAMEBUFFER 20
 #endif
 
 #ifndef BUFSIZE
@@ -28,7 +28,7 @@ typedef struct sockaddr_in sockaddr_in;
 
 char* getName() {
 	char *buf = malloc(NAMEBUFFER * sizeof buf);
-	printf("What is your name?\n");
+	printf("What is your name? Max 20 char, (A-Za-z0-9-_ )\n");
 	fgets(buf, NAMEBUFFER, stdin);
     // get rid of trailing newline
     buf[strcspn(buf, "\r\n")] = 0;
@@ -91,6 +91,7 @@ int initConnectWriteName(int tryPort, struct hostent *hp, char *name) {
             perror("write");
             exit(1);
         }
+        printf("write_name returned %d\n", write_name);
     }
 
     return sock;
@@ -140,7 +141,7 @@ char* getGesture(int sock) {
         perror("write");
         exit(1);
     }
-    // printf("wrote gesture %s to server, %d bytes written\n", ges, write_ges);
+    printf("wrote gesture %s to server, %d bytes written\n", ges, write_ges);
 
     return ges;
 }
@@ -186,7 +187,7 @@ int main(int argc, char **argv) {
             perror("read");
             exit(1);
         } else if (strncmp(close_msg, buffer, strlen(buffer)) == 0){
-            // fprintf(stderr, "Server is full. Try again later. Closing socket.\n");
+            fprintf(stderr, "Server is full. Try again later. Closing socket.\n");
             close(sock);
             return 0;
         } else if (strncmp(wait_msg, buffer, strlen(buffer)) == 0) {
@@ -196,6 +197,7 @@ int main(int argc, char **argv) {
         }
     }
 
+    printf("Found p2!\n");
     // get name
     char oppbuffer[NAMEBUFFER];
     memset(oppbuffer, '\0', sizeof(*oppbuffer) * (NAMEBUFFER));
@@ -206,8 +208,6 @@ int main(int argc, char **argv) {
             exit(1);
     }
     strncpy(opponent, oppbuffer, strlen(oppbuffer));
-    // kill trailing newlines
-    opponent[strcspn(opponent, "\r\n")] = 0;
     printf("Playing against %s\n", opponent);
 
     char *ges;
@@ -229,6 +229,7 @@ int main(int argc, char **argv) {
             perror("read");
             exit(1);
         }
+        printf("buffer: %s\n", buffer);
         char *winmessage = malloc(sizeof(char) * BUFSIZE);
         sprintf(winmessage, "%s WINS!", name);
         my_wins += 1;
@@ -258,23 +259,34 @@ int main(int argc, char **argv) {
 
     pt = strtok (buffer, ",");
     pt = strtok (NULL, ",");
+    printf("%s\n",pt);
 
     char copybuf[BUFSIZE];
 
     strncpy(copybuf, pt+2, strlen(pt-2));
+    printf("copybuf: %s\n", copybuf);
     games = strtol(copybuf, NULL, 10);
 
     pt = strtok (NULL, ","); // NEXT: wins
     strncpy(copybuf, pt+2, strlen(pt-2));
+    printf("copybuf: %s\n", copybuf);
     wins = strtol(copybuf, NULL, 10);
 
     pt = strtok (NULL, ","); // NEXT: losses
     strncpy(copybuf, pt+2, strlen(pt-2));
+    printf("copybuf: %s\n", copybuf);
     losses = strtol(copybuf, NULL, 10);
 
     pt = strtok (NULL, ","); // NEXT: ties. note account for \r\n
     strncpy(copybuf, pt+2, strlen(pt-4));
+    printf("copybuf: %s\n", copybuf);
     ties = strtol(copybuf, NULL, 10);
+
+    // check
+    printf("games: %d\n", games);
+    printf("wins: %d\n", wins);
+    printf("losses: %d\n", losses);
+    printf("ties: %d\n", ties);
 
     if (wins == losses) {
         // tie
@@ -289,6 +301,10 @@ int main(int argc, char **argv) {
     }
 
     fprintf(stderr, "%d %d-%d\n", sock, wins, losses);
+
+
+
+    
     
     close(sock);
     free(name);
